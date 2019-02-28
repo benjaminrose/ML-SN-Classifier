@@ -1,0 +1,57 @@
+-------------------------------------------------------
+WITH BAZIN information:
+
+./ML_DES_typing_v3_reference.py --ft  x1 c z t0_err x1_err c_err Bazin_r_t_fall Bazin_r_t_rise --train DES_training_SNR550.txt --test DES_validation_SNR550.txt --nclass 3 --eff 0.85 --filestr v3_reference_eff0p85_Bazin --Bazin train --Bazinerrcuts --data Phot > v3_reference_8feat_eff0p95_Bazin.txt
+
+------------------------------------------
+MAINLINE plots without Bazin information:
+
+./ML_DES_typing_v3_reference.py --ft  x1 c z t0_err x1_err c_err --train DES_training_SNR550.txt --test DES_validation_SNR550.txt --nclass 3 --eff 0.85 --filestr v3_reference_eff0p85 --data Phot > v3_reference_6feat_eff0p85.txt
+-------------------------------------------------------
+
+OTHER EXAMPLES
+--------------
+
+./ML_DES_typing_v3_reference.py --ft  x1 c z t0_err x1_err c_err --train DES_training_SNR550_Ibc1mag.txt --test DES_validation_SNR550_Ibc1mag.txt --nclass 3 --eff 0.95 --filestr v3_reference_eff0p95 --data Phot > v3_reference_6feat_eff0p95.txt
+
+./ML_DES_typing_v3_reference.py --ft  x1 c z t0_err x1_err c_err --train DES_training_SNR550_Ibc1mag.txt --test DES_validation_SNR550_Ibc1mag.txt --nclass 3 --eff 0.9 --filestr v3_reference_eff0p9 --data Phot > v3_reference_6feat_eff0p9.txt
+
+./ML_DES_typing_v3_reference.py --ft  x1 c z t0_err x1_err c_err --train DES_training_SNR550_Ibc1mag.txt --test DES_validation_SNR550_Ibc1mag.txt --nclass 3 --eff 0.85 --filestr v3_reference_eff0p85 --data Phot > v3_reference_6feat_eff0p85.txt
+
+./ML_DES_typing_v3_reference.py --ft  x1 c z t0_err x1_err c_err --train DES_training_SNR550_Ibc1mag.txt --test DES_validation_SNR550_Ibc1mag.txt --nclass 3 --eff 0.8 --filestr v3_reference_eff0p8 --data Phot > v3_reference_6feat_eff0p8.txt
+
+./ML_DES_typing_v3_reference.py --ft  x1 c z t0_err x1_err c_err --train DES_training_SNR550_Ibc1mag.txt --test DES_validation_SNR550_Ibc1mag.txt --nclass 3 --eff 0.75 --filestr v3_reference_eff0p75 --data Phot > v3_reference_6feat_eff0p75.txt
+
+./ML_DES_typing_v3_reference.py --ft  x1 c z t0_err x1_err c_err --train DES_training_SNR550_Ibc1mag.txt --test DES_validation_SNR550_Ibc1mag.txt --nclass 3 --eff 0.7 --filestr v3_reference_eff0p7 --data Phot > v3_reference_6feat_eff0p7.txt
+
+./ML_DES_typing_v3_reference.py --ft  x1 c z t0_err x1_err c_err --train DES_training_SNR550_Ibc1mag.txt --test DES_validation_SNR550_Ibc1mag.txt --nclass 3 --eff 0.5 --filestr v3_reference_eff0p5 --data Phot > v3_reference_6feat_eff0p5.txt
+
+------------------------------------------
+
+./ML_DES_typing_v3_reference.py --ft  x1 c z t0_err x1_err c_err --train DES_training_SNR550.txt --test DES_validation_SNR550.txt --nclass 3 --eff 0.95 --filestr v3_reference_eff0p95 --data Phot > v3_reference_6feat_eff0p95.txt
+
+./ML_DES_typing_v3_reference.py --ft  x1 c z t0_err x1_err c_err --train DES_training_SNR550.txt --test DES_validation_SNR550.txt --nclass 3 --eff 0.9 --filestr v3_reference_eff0p9 --data Phot > v3_reference_6feat_eff0p9.txt
+
+./ML_DES_typing_v3_reference.py --ft  x1 c z t0_err x1_err c_err --train DES_training_SNR550.txt --test DES_validation_SNR550.txt --nclass 3 --eff 0.85 --filestr v3_reference_eff0p85 --data Phot > v3_reference_6feat_eff0p85.txt
+
+./ML_DES_typing_v3_reference.py --ft  x1 c z t0_err x1_err c_err --train DES_training_SNR550.txt --test DES_validation_SNR550.txt --nclass 3 --eff 0.8 --filestr v3_reference_eff0p8 --data Phot > v3_reference_6feat_eff0p8.txt
+
+./ML_DES_typing_v3_reference.py --ft  x1 c z t0_err x1_err c_err --train DES_training_SNR550.txt --test DES_validation_SNR550.txt --nclass 3 --eff 0.75 --filestr v3_reference_eff0p75 --data Phot > v3_reference_6feat_eff0p75.txt
+
+./ML_DES_typing_v3_reference.py --ft  x1 c z t0_err x1_err c_err --train DES_training_SNR550.txt --test DES_validation_SNR550.txt --nclass 3 --eff 0.7 --filestr v3_reference_eff0p7 --data Phot > v3_reference_6feat_eff0p7.txt
+
+./ML_DES_typing_v3_reference.py --ft  x1 c z t0_err x1_err c_err --train DES_training_SNR550.txt --test DES_validation_SNR550.txt --nclass 3 --eff 0.5 --filestr v3_reference_eff0p5 --data Phot > v3_reference_6feat_eff0p5.txt
+
+------------------------------------------
+
+./ML_DES_typing_v3_reference.py --ft  x1 c z t0_err x1_err c_err --train DES_training_SNR550_Ibc1mag.txt --test DES_validation_SNR550_Ibc1mag.txt --nclass 3 --eff 0.85 --filestr v3_reference_eff0p85
+
+./ML_DES_typing_v3_reference.py --ft  x1 c z t0_err x1_err c_err --train DES_training_SNR550_Ibc1mag.txt --test DES_validation_SNR550_Ibc1mag.txt --nclass 3 --eff 0.85 --filestr v3_reference_eff0p85 --data Spec 
+
+------------------------------------------
+
+./ML_DES_typing_v3_reference.py --ft  x1 c z t0_err x1_err c_err --train DES_training_SNR550.txt --test DES_validation_SNR550.txt --nclass 3 --eff 0.85 --filestr v3_reference_eff0p85
+
+./ML_DES_typing_v3_reference.py --ft  x1 c z t0_err x1_err c_err --train DES_training_SNR550.txt --test DES_validation_SNR550.txt --nclass 3 --eff 0.85 --filestr v3_reference_eff0p85 --data Spec 
+
+
