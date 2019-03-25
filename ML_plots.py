@@ -467,13 +467,13 @@ def plot_types(f, types, xvar, alldata, plotlist=[''], masks={}, weights=True, t
                 # print 'plotting',var,'in',data
                 datasetx = {}
                 datasety = {}
-                if type_data != g.Total and type_data in masks[data].keys():     # plot selected subsample by type of data
+                if type_data != g.Total and data in masks.keys() and type_data in masks[data].keys():     # plot selected subsample by type of data
                     mask_this = masks[data][type_data]
                 else:
                     mask_this = np.ones(len(alldata[data][xvar]), dtype=bool)
                     if type_data != g.Total:                                     # reset if failed to find selected type
+                        print('    {} type not available in {} data: defaulting to Total sample'.format(type_data, data))
                         type_data = g.Total
-                        print('    {} type not available in {} data: defaulting to Total sample'.format(type_data, dat))
                 if len(cuts) == 0:
                     datasetx = alldata[data][xvar][mask_this]
                     if len(yvar) > 0:
@@ -1278,11 +1278,11 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                         if len(pair[1]) > 0 and pair[1][0] in tmask.keys():  # check if true_types available in data
                             type_data = g.Ia
                     else:
-                        types_this = [CLFtypes_plot, [CLFid + g.TPIa, CLFid + g.FPIa]] # TPFP always available in sim                     
+                        types_this = [CLFtypes_plot, [CLFid + g.TPIa, CLFid + g.FPIa]] # TPFP always available in sim
                     for types in types_this:
-                        print('  Plotting {} Data ({} with types {})'.format(' + '.join([c for sublist in pair for c in sublist]),
+                        print('  Plotting {} Data using ({} with types {}) + ({})'.format(' + '.join([c for sublist in pair for c in sublist]),
                                                                              classification_labels[mkey],
-                                                                             ' '.join(types)))
+                                                                                  ' '.join(types), type_data))
                         # z, HR linear and HR log distributions
                         nplot = plot_hubble(fig, pair, alldata, types, tmask, nplot=nplot, lgnd_title=classification_labels[mkey],
                                             type_data=type_data)
@@ -1304,14 +1304,14 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                         if g.TrueType in mkey:
                             types = [g.Ia]
                         else:
-                            types = [g.RFTPIa, g.RFFPIa] if g.TrueType in type_masks.keys() else [g.RFIa]
-                        print('  Plotting HD for {} Data ({})'.format(dkey, classification_labels[mkey]))
+                            types = [g.RFTPIa, g.RFFPIa] if dkey in type_masks[g.TrueType].keys() else [g.RFIa]
+                        print('  Plotting HD for {} Data ({}) using {} type(s)'.format(dkey, classification_labels[mkey], ' + '.join(types)))
                         nplot = plot_HD(fig, dkey, alldata, types, tmask, nplot=nplot, lgnd_title=classification_labels[mkey])
                         fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage)
                         if closed:
                             page_total += 1
                     else:
-                        print('  Not found', dkey, 'for', mkey)
+                        print('  Skipping scatter plots for {}: not available for {} data'.format(mkey, dkey))
 
             if not closed:
                 subpage = close_page(fig, multiPdf, npage, subpage)
