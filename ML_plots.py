@@ -71,10 +71,10 @@ t_fall = 't_fall'
 t_rise = 't_rise'
 C = 'C'
 bazinpars = [A, t0, t_fall, t_rise, C]
-bazinparlabels = {A: '$A$', t0: '$t_0$', t_fall: '$t_{fall}$', t_rise: '$t_{rise}$', C: '$C$'}
 bazinerrs = [p + err for p in bazinpars]
-bazinerrlabels = {A + err: '$\Delta A$', t0 + err: '$\Delta t_0$', t_fall + err: '$\Delta t_{fall}$',
-                  t_rise + err: '$\Delta t_{rise}$', C + err: '$\Delta C$'}
+bazinlabels = {A: '$A$', t0: '$t_0$', t_fall: '$t_{fall}$', t_rise: '$t_{rise}$', C: '$C$',
+               A + err: '$\Delta A$', t0 + err: '$\Delta t_0$', t_fall + err: '$\Delta t_{fall}$',
+               t_rise + err: '$\Delta t_{rise}$', C + err: '$\Delta C$'}
 Bazincolors = [col + g.Bazin for col in colors]
 Bazincolorlabels = [g.Bazin + ' $' + c + '$' for c in colorlabels]
 
@@ -272,6 +272,7 @@ def tee(line, f):
 def get_mask(alldata, varlist, varlabels, cuts={}, ops=[], not_ops=[], mask_id='mask_id',
              file_id='', debug=False):
     # usage eg. SALTcolormask=get_mask(alldata, SALTcolors, SALTcolorlabels, mask_id='SALT-color', file_id=file_id)
+    # default cut is to not missing data
     mask = {}
     totals = {}
     if len(cuts) > 0:
@@ -1002,7 +1003,6 @@ def get_Bazincuts(cuts):
     bazinp = bazinpars if any('par' in k for k in  cuts.keys()) else []
     bazine = bazinerrs if any('err' in k for k in  cuts.keys()) else []
     bazinvars = bazinp + bazine
-    bazinvarlabels = [bazinparlabels[v] for v in bazinp] + [bazinerrlabels[v] for v in bazine]
     pmaxcuts = cuts.get(g.Bazinpar_max) if len(bazinp) > 0 else []
     subpmax = [bazinpars[i] if (type(pmaxcuts[i]) == str and len(pmaxcuts[i]) > 0) else '' for i in range(len(bazinpars))] \
                if len(bazinp) > 0 else []
@@ -1017,7 +1017,7 @@ def get_Bazincuts(cuts):
     Bazincuts = {Max: pmaxcuts + emaxcuts , Min: pmincuts + emincuts, AltMax: subpmax + sube,
                  AltMin: subpmin + sube}
 
-    return bazinvars, bazinvarlabels, Bazincuts
+    return bazinvars, Bazincuts
 
 
 def plot_Bazinvars(fig, plotlist, alldata, types, type_masks, filt, nplot=0, lgnd_title='',
@@ -1030,12 +1030,12 @@ def plot_Bazinvars(fig, plotlist, alldata, types, type_masks, filt, nplot=0, lgn
         varlist = [b for b in bazinpars if not (b == t0)]
         binlo = binlo_par
         binhi = binhi_par
-        labellist = [bazinparlabels[b] for b in varlist] 
+        labellist = [bazinlabels[b] for b in varlist] 
     else:
         varlist = [b for b in bazinerrs]
         binlo = [binlo_err for b in bazinerrs]
         binhi = [binhi_err for b in bazinerrs]
-        labellist = [bazinerrlabels[b] for b in bazinerrs]
+        labellist = [bazinlabels[b] for b in bazinerrs]
         
     nplot = 0
     ylabel = '$N$'
@@ -1486,25 +1486,40 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
         if g.Bazin in group:
             print('\nStarting pages {}.x: {} plots'.format(npage, group))
             
-            if len(cuts) >0 and g.Bazin in cuts:
-                bazinvars, bazinvarlabels, Bazincuts = get_Bazincuts(cuts[g.Bazin])
+            bazinvars = bazinpars + bazinerrs #default list of all Bazin features
+            Bazincuts = {}
+            joint_Pass = ne                   #default string for combined filter cuts
+            if len(cuts) >0 and g.Bazin in cuts:  
+                bazinvars, Bazincuts = get_Bazincuts(cuts[g.Bazin])
+                joint_Pass = _in_
+            bazinvarlabels = [bazinlabels[v] for v in bazinvars]
 
             Bazinfitmask = {}
             Bazin_features = []
-            for filt in fit_bands:      #assemble masks for Bazin cuts
+            for filt in fit_bands:      #assemble masks for Bazin cuts; defaults to cuts on good fits (!-999) if cuts = {}
                 varlist = ['_'.join([g.Bazin, filt, v]) for v in bazinvars]
                 Bazin_features = Bazin_features + varlist
                 varlabels = [' '.join([g.Bazin, fitlabels[filt], v]) for v in bazinvarlabels]
                 Bazinfitmask[filt] = get_mask(alldata, varlist, varlabels, cuts=Bazincuts, mask_id='Bazin-fit',
                                             file_id=plot_id, debug=debug)
 
-            # select good data for Bazin colors (NB: removing -999's probably not sufficient to remove flaky fits)
+            # select good data for Bazin colors (NB: removing -999's alone probably not sufficient to remove flaky fits)
             Bazincolormask = get_mask(alldata, Bazincolors, colorlabels, mask_id='Bazin-color', file_id=plot_id, debug=debug)
+            #print(Bazincolormask.keys()) # 'izBazin!=-999', 'Joint!=', 'riBazin!=-999'..
 
             Bazincombinedmask = {}
-            for col in colors:  # get joint mask for SN passing filter cuts in each color
-                Bazincombinedmask[col] = get_combined_colormask(col, Bazinfitmask, mask_id='Bazin-combined', file_id=plot_id)
-
+            for col in colors:  # get joint mask for SN passing filter cuts for each color
+                Bazincombinedmask[col] = get_combined_fitmask(col, Bazinfitmask, mask_id='Bazin-combined', 
+                                                                 joint_Pass=joint_Pass, file_id=plot_id)
+            
+            # now combine filter and color cuts
+            #Bazinmask = {}
+            #for col in colors:
+            #    Bazinmask[col] = {}
+            #     for dkey, mask in Bazincombinedmask[col].items():
+            #        Bazinmask[col][dkey] = mask & Bazincolormask[col+Bazin+ne999][dkey]
+            #        print(col, np.count_nonzero(Bazinmask[col]), float(np.count_nonzero(Bazinmask[col]))/len(Bazinmask[col]))
+                                     
             subpage = 1
             nplot = 0
             valid_keys = get_valid_keys(alldata, Bazin_features)  # check that data has features
@@ -1519,13 +1534,15 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                     for filt in fit_bands:
                         # 5 or 6 plots
                         nplot = plot_Bazinvars(fig, combo, alldata, types, tmask, filt, nplot=nplot, cuts=Bazinfitmask[filt],
-                                               lgnd_title=classification_labels[mkey], joint_Pass=_in_, minmax=minmax, debug=debug)
+                                               lgnd_title=classification_labels[mkey], joint_Pass=joint_Pass,
+                                               minmax=minmax, debug=debug)
                         fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage,
                                                                force_close=True)
                         page_total += 1
 
                         nplot = plot_Bazinvars(fig, combo, alldata, types, tmask, filt, nplot=nplot, cuts=Bazinfitmask[filt],
-                                               lgnd_title=classification_labels[mkey], joint_Pass=_in_, errors=True, minmax=minmax, debug=debug)
+                                               lgnd_title=classification_labels[mkey], joint_Pass=joint_Pass, errors=True,
+                                               minmax=minmax, debug=debug)
                         fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage,
                                                                force_close=True)
                         page_total += 1
@@ -1557,17 +1574,18 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
 
     return
 
-def get_combined_colormask(col, colormask, mask_id='', joint_Pass=_in_, file_id=''):
+def get_combined_fitmask(col, fitmask, mask_id='', joint_Pass=_in_, file_id=''):
 
+    #work on default
     ff = open(file_id + '_' + mask_id + '.eff', 'w')
-    tee('\n  Efficiencies for {} cuts for color {}'.format(mask_id, col), ff)
-    combined_mask = {}
     filters = [c for c in col]
+    tee('\n  Efficiencies for {} cuts for filters {}'.format(mask_id, ' & '.join(filters)), ff)
+    combined_mask = {}
     for filt in filters:
-        if filt in colormask:
+        if filt in fitmask:
             joint_pass = Joint + joint_Pass
-            if joint_pass in colormask[filt]:
-                for dkey, mask in colormask[filt][joint_pass].items():
+            if joint_pass in fitmask[filt]:
+                for dkey, mask in fitmask[filt][joint_pass].items():
                     if dkey in combined_mask:
                         combined_mask[dkey] = combined_mask[dkey] & mask
                     else:
@@ -1577,7 +1595,7 @@ def get_combined_colormask(col, colormask, mask_id='', joint_Pass=_in_, file_id=
     for dkey, cmask in combined_mask.items():
         pass_effcy = float(np.count_nonzero(cmask))/len(cmask)
         tee('    {:10} {:6} {:10.3g}'.format(dkey, np.count_nonzero(cmask), pass_effcy), ff)
-    
+
     return combined_mask
     
         
