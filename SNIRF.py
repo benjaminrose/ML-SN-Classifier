@@ -14,6 +14,7 @@ from astropy.io.misc import fnunpickle, fnpickle
 from operator import add
 from time import time
 import traceback
+import subprocess
 import matplotlib
 import math as m
 from matplotlib import rc
@@ -149,6 +150,9 @@ def parse_args(argv):
                         default='', help='Choose string to append to filenames for output files')
     parser.add_argument('--format', default=txt,
                         help='Format for output of classification data (txt, hdf5, fits)')
+    # Repository option for retrieving commit hash
+    parser.add_argument('--path_to_repo', default='./ML-SN-Classifier',
+                        help='Path to local github repository containing code')
     # Plot options
     parser.add_argument('--plots', nargs='+', default='',
                         choices=['', g.Performance, g.SALT, g.Hubble, g.Error, g.Color, g.Magnitude, g.Bazin],
@@ -551,6 +555,20 @@ def print_heading(v):
     print('******************************************')    
 
     return
+
+
+def retrieve_commit_hash(path_to_repo):
+    """ Return the commit hash of the git branch currently live in the input path.
+    Parameters
+    ----------
+    path_to_repo : string
+    Returns
+    -------
+    commit_hash : string
+    """
+    cmd = 'cd {0} && git rev-parse HEAD'.format(path_to_repo)
+    return subprocess.check_output(cmd, shell=True).strip()
+
 
 def build_RF_classifier(data_train, nclass, features, ncores, alltypes_colname, target_class=0,
                         type_colnames=g.data_defaults[g.default_format]['type_colnames'],
@@ -1174,7 +1192,7 @@ def exit_code(filename, status=g.SUCCESS, msg='', start_time=-1):
     msg = 'Completed with status: {}'.format(status)
     print(msg)
 
-    if status != g.SUCCESS and status != g.EXCEPTION:
+    if status != g.EXCEPTION: # exit without throwing exception
         os._exit(1)
         
 
@@ -1185,6 +1203,7 @@ def main(args, start_time=-1):
 
     print_heading(version)
     Fixed_effcy = args.eff  # fix efficiency to selected values
+    print('\nCommit-hash for code: {}'.format(retrieve_commit_hash(args.path_to_repo)[0:7]))
 
     # Setup type lists to be used in code, printing, plotting
     MLtypes = [g.Ia, g.CC] if args.nclass == 2 else [g.Ia, g.Ibc, g.II]
@@ -1192,12 +1211,15 @@ def main(args, start_time=-1):
     print('\n{}-way classification'.format(str(nway)))
     
     # setup default pklfilename
-    pklfile = os.path.join(args.filedir, '_'.join([args.pklfile, args.pklformat, 
-                                                   'format', str(args.nclass) + 'way.pkl']))
+    pkldir, pklname = os.path.split(args.pklfile)
+    pkldir = pkldir if len(pkldir) > 0 else args.filedir
+    pklfile = os.path.join(pkldir, '_'.join([pklname, args.pklformat,
+                                             'format', str(args.nclass) + 'way.pkl']))
 
     # Setup dicts for non-user data files and properties
     train_file = args.train if not args.restore else pklfile
-    datafile_args = [train_file, args.validation, args.test, args.spec, args.spec_nofp, args.phot]
+    test_file = args.test if not args.train_only else ''
+    datafile_args = [train_file, args.validation, test_file, args.spec, args.spec_nofp, args.phot]
     data_files = dict(zip(g.datafile_keys, datafile_args))
     file_formats, file_types = get_file_info(data_files)
     alltypes_colname_args = [args.alltypes_colname_train, args.alltypes_colname_validation, args.alltypes_colname_test,
@@ -1318,7 +1340,7 @@ def main(args, start_time=-1):
             classifiers, data_train, training_class_values, feature_sets[g.Training] = _result
             if args.store:
                 # setup pklfilename including actual file type of training data
-                pklfile = os.path.join(args.filedir, '_'.join([args.pklfile, file_types[g.Training], 
+                pklfile = os.path.join(pkldir, '_'.join([pklname, file_types[g.Training], 
                                                    'format', str(args.nclass) + 'way.pkl']))
                 if args.nclass == -2:
                     joblib.dump(classifiers[0], 'pre' + pklfile)
