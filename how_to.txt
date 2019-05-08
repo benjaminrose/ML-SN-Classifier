@@ -1,23 +1,41 @@
-ML_DES_typing_v3_2.py performs photometric classification using a
+SNIRF.py performs photometric classification using a
 Random-Forest machine-learing algorithm. It builds and tests the
 classifier using simulated data. The user can supply additional data
 files which will be classified by the code. The code saves the
 classifications in auxiliary text files.
 
 The package consists of 3 modules:
+SNIRF.py (builds and runs the classifier; outputs results)
 ML_globals.py (contains definitions of global constants and functions)
-ML_DES_typing_v3_2.py (builds and runs the classifier; outputs results)
 ML_plots.py (optional plotting code that makes a variety of plots)
 
 Many options are available.
 To get help:
 
-python ./ML_DES_typing_v3_2.py -h  (standard argparse implementation) 
+python ./SNIRF.py -h  (standard argparse implementation)
 
-Examples of various code options:
+Examples of various code options for txt format:
 
-python ./ML_DES_typing_v3_2.py --ft x1 c z t0_err x1_err c_err --nclass 3 --eff 0.85 --filedir evk --data Spec  --plots ''
+python ./SNIRF.py --ft x1 c z t0_err x1_err c_err --nclass 3 --eff 0.85 --filedir evk --data Spec 
 
-python ./ML_DES_typing_v3_2.py --ft x1 c z --nclass 2 --eff 0.8 0.9 --filedir evk --user_data TestForEve.csv --user_alltypes_colname spec_eval --plots ''
+python ./SNIRF.py --ft x1 c z --nclass 2 --eff 0.8 0.9 --filedir evk --user_data TestForEve.csv --user_alltypes_colname spec_eval
 
-python ./ML_DES_typing_v3_2.py --ft x1 c z --nclass 2 --eff 0.8 0.9 --filedir evk --data Phot --plots SALT Hubble Color Magnitude
+python ./SNIRF.py --ft x1 c z --nclass 2 --eff 0.8 0.9 --filedir evk --data Phot --plots SALT Hubble Color Magnitude
+
+python ./SNIRF.py --ft x1 c z --nclass 2 --eff 0.8 --filedir evk --train_only --commit_hash_path ''
+
+python ./SNIRF.py --ft x1 c z --nclass 2  --filedir evk --pklfile mypkl --store
+
+python ./SNIRF.py --ft x1 c z --nclass 2 --eff 0.8 --filedir evk --pklfile mypkl --restore --pklformat txt
+
+Examples of various code options for fitres format:
+
+python ./SNIRF.py --ft FITPROB x1 c PKMJDERR --train FITOPT000.FITRES.gz --nclass 3 --filedir evk --train-only
+
+python ./SNIRF.py --ft FITPROB x1 c PKMJDERR --train FITOPT000.FITRES.gz --nclass 3 --eff 0.85 --filedir evk --test TestForEve.csv
+
+python ./SNIRF.py --ft FITPROB x1 c x1ERR cERR PKMJDERR --train FITOPT000.FITRES.gz --nclass 2 --eff 0.85 --filedir evk --test '' --user_data TestForEve.csv
+
+python ./SNIRF.py --ft FITPROB x1 c x1ERR cERR PKMJDERR --train FITOPT000.FITRES.gz --nclass 2 --eff 0.85 --filedir evk --test '' --user_data TestForEve.csv --user_alltypes_colname spec_eval'' --user_data
+
+python ./SNIRF.py --ft FITPROB x1 c x1ERR cERR PKMJDERR --train FITOPT000.FITRES.gz --nclass 2 --eff 0.85 --filedir evk --test TestForEve.csv alltypes_colname_test spec_eval

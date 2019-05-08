@@ -1,6 +1,7 @@
 # GLOBAL VARIABLES 
 
-name = 'SNIRF (SN Identification with Random Forest)'
+name = 'SNIRF'
+description = 'SN Identification with Random Forest'
 authors = ['Eve Kovacs', 'Steve Kuhlmann', 'Ravi Gupta']
 
 # true types, classified types
@@ -114,6 +115,11 @@ Bazin = 'Bazin'
 zlo = 0.0
 zhi = {Training: 1.4, Validation: 1.4, Test:1.4, Data: 1.1}
 
+#status
+SUCCESS = 'SUCCESS'
+FAILURE = 'FAILURE'
+EXCEPTION = 'EXCEPTION'
+
 #translation dict for different data formats
 
 allowed_formats = {'text':['txt'], 'fitres':['FITRES', 'csv']}
@@ -135,8 +141,15 @@ allowed_features = {'text': ['c', 'x0', 'x1', 't0', 'z', 'chi2', 'fit_pr', 'gpea
                               'SIMNULL1', 'SIM_RV', 'SIM_x0', 'SIM_mB'],
                     }
 
-alternate_feature_names = {'text': {},
-                           'fitres':{'PKMJDERR':'PKMJDerr',
+alternate_feature_names = {'text': {'z': 'zCMB', 't0':'PKMJD', 't0_err':'PKMJDERR',
+                                    'x0_err':'x0ERR', 'x1_err':'x1ERR', 'c_err':'cERR', 'chi2':'FITCHI2', 'dof':'NDOF', 
+                                    'fit_pr':'FITPROB', 'snr1':'SNRMAX1', 'snr2':'SNRMAX2', 'snr3':'SNRMAX3', 'field':'FIELD',
+                                    'sim_type':'SIM_TYPE_INDEX', 'sim_idx':'SIM_TEMPLATE_INDEX',
+                                    },
+                           'fitres':{'zCMB':'z', 'PKMJD':'t0', 'PKMJDERR':['PKMJDerr', 't0_err'], 'FITCHI2':'chi2', 'FITPROB':'fit_pr',
+                                     'SNRMAX1':'snr1', 'SNRMAX2':'snr2', 'SNRMAX3':'snr3', 'SIM_TYPE_INDEX':'sim_type',
+                                     'SIM_TEMPLATE_INDEX':'sim_idx', 
+                                     'x0ERR':'x0_err', 'x1ERR': 'x1_err', 'cERR': 'c_err',
                                     }
                           }
 
@@ -167,13 +180,6 @@ feature_names = {'z':{'text':'z', 'fitres':'zCMB'},
                  'snid':{'text':'snid','fitres':'CID'},                 
                 } 
 
-translate = {'txt_2_fitres':{'snid':'CID', 'z': 'zCMB', 't0':'PKMJD', 't0_err':'PKMJDERR',
-                             'x0_err':'x0ERR', 'x1_err':'x1ERR', 'c_err':'cERR', 'chi2':'FITCHI2', 'dof':'NDOF', 
-                             'fit_pr':'FITPROB', 'snr1':'SNRMAX1', 'snr2':'SNRMAX2', 'snr3':'SNRMAX3', 'field':'FIELD',
-                             'sim_type':'SIM_TYPE_INDEX', 'sim_idx':'SIM_TEMPLATE_INDEX',
-                             }
-            }
-
 allowed_templates = {'2P':['20'], '2N':['21'], '2L':['22'], '1b':['32'], '1c':['33'],
                      'IIN':['206', '209'],
                      'IIL':['002'], 
@@ -201,6 +207,6 @@ def EffPur(true, predict):
         Pur = 1.0 * Tp / (Tp + Fp)
     except:
         print('\n    **Exception in EffPur: TP+FP = {}**'.format(Tp + Fp))
-        Eff = float(g.nodata); Pur = Eff; 
+        Eff = float(nodata); Pur = Eff; 
 
     return Eff, Pur, Rem

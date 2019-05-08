@@ -151,8 +151,9 @@ def parse_args(argv):
     parser.add_argument('--format', default=txt,
                         help='Format for output of classification data (txt, hdf5, fits)')
     # Repository option for retrieving commit hash
-    parser.add_argument('--path_to_repo', default='./ML-SN-Classifier',
-                        help='Path to local github repository containing code')
+    parser.add_argument('--commit_hash_path', default='./ML-SN-Classifier',
+                        help='Path to local github repository for retrieving commit hash ' + \
+                             "(set to '' to skip)")
     # Plot options
     parser.add_argument('--plots', nargs='+', default='',
                         choices=['', g.Performance, g.SALT, g.Hubble, g.Error, g.Color, g.Magnitude, g.Bazin],
@@ -284,19 +285,23 @@ def get_purity_scores(yset, probs, effcies, pos_label=0):
     print('    Length of threshold array (unique prob. values) = {}'.format(len(thresh)))
     y = thresh[::-1]  # reverse order so thresholds decrease
     x = eff[::-1][1::]  # reverse order so efficiency increasing (for interp1d), remove last zero
-    efficiency_func = interp1d(x, y, kind='linear')  # reverse-order so x is monotonically increasing
 
-    # loop over efficiencies
     P_eff_list = []
     score_list = []
-    for effcy in effcies:
-        P_eff = efficiency_func(effcy)  # threshold probability at efficiency=effcy
-        print('\n    Threshold probability (P_thresh) (eff={:0.1f}%) = {:.3f}'.format(effcy * 100, float(P_eff)))
-        print('    Purity (P_thresh=0) = {:.3f}'.format(pur[pos_label]))
-        score = score_func(probs, yset, effcy)
-        print('    SCORE (purity @ eff={:0.1f}%) = {:.4f}'.format(effcy * 100, score))
-        P_eff_list.append(P_eff)
-        score_list.append(score)
+    if len(x) > 1 and len(y) > 1:
+        efficiency_func = interp1d(x, y, kind='linear')  # reverse-order so x is monotonically increasing
+
+        # loop over efficiencies
+        for effcy in effcies:
+            P_eff = efficiency_func(effcy)  # threshold probability at efficiency=effcy
+            print('\n    Threshold probability (P_thresh) (eff={:0.1f}%) = {:.3f}'.format(effcy * 100, float(P_eff)))
+            print('    Purity (P_thresh=0) = {:.3f}'.format(pur[pos_label]))
+            score = score_func(probs, yset, effcy)
+            print('    SCORE (purity @ eff={:0.1f}%) = {:.4f}'.format(effcy * 100, score))
+            P_eff_list.append(P_eff)
+            score_list.append(score)
+    else:
+        print('    Unable to interpolate efficiency function (insufficient unique values)')
         
     return pur, eff, thresh, P_eff_list, score_list
 
@@ -326,26 +331,26 @@ def get_prob(clf, traindata, testdata, ytrain, debug=False, ntest=None):
     for nt, nodes in enumerate(allnodes[0:ntest]):
         test = testdata[nt]
         if (debug):
-            print "Validation data #", nt, "=", test
-            print "Leaf nodes =", nodes
+            print("Validation data # {} = {}".format(nt, test))
+            print("Leaf nodes = {}".format(nodes))
         sumpr = np.array([0.] * len(classvals))  # init sum
         sumpr2 = np.array([0.] * len(classvals))  # init sum
         for n, node in enumerate(nodes):  # loop thru nodes in trees
             match = (leafs.T[n] == node)
             classes = ytrain[match]  # classes of objects landing in same node
             if (debug):
-                print "# of matching classes=", len(classes), "for", n, "th tree"
+                print('# of matching classes = {} for {}th tree'.format(len(classes), n))
                 cldist = [np.sum(classes == x) for x in classvals]
-                print "# of each class", cldist
-                print "Prob from estimator=", clf.estimators_[n].predict_proba(X_test)[nt]
+                print("# of each class = {}".format(cldist))
+                print("Prob from estimator = {}".format(clf.estimators_[n].predict_proba(X_test)[nt]))
             probs = [float(np.sum(classes == x)) / float(len(classes)) for x in classvals]
             sumpr = sumpr + np.asarray(probs)
             sumpr2 = sumpr2 + np.asarray(probs) * np.asarray(probs)
             if (debug):
-                print "Probs=", probs, "from #matches=", len(classes), "in", n, "th tree"
+                print("Probs = {} from #matches = {} in {}th tree".format(probs, len(classes), n))
 
-        average[nt] = sumpr / float(clf.get_params()['n_estimators'])
-        variance[nt] = np.sqrt(sumpr2 / float(clf.get_params()['n_estimators']) - average[nt] * average[nt])
+        average[nt] = sumpr/float(clf.get_params()['n_estimators'])
+        variance[nt] = np.sqrt(sumpr2/float(clf.get_params()['n_estimators']) - average[nt] * average[nt])
 
     # endfor
     return average, variance
@@ -368,7 +373,7 @@ def prob_errors(model, X, percentile=90, debug=False, ntest=None):
     for n, dtree in enumerate(model.estimators_):
         probs = dtree.predict_proba(X)
         if (debug):
-            print "Probs=", probs[0:ntest], "for", n, "th tree"
+            print("Probs = {} for {}th tree".format(probs[0:ntest], n))
         sumpr = sumpr + probs
         sumpr2 = sumpr2 + probs * probs
         for p, prob in enumerate(probs):
@@ -393,11 +398,12 @@ def read_data_file(key, datafile, SNRcut=5, zhi=g.zhi, SNRkey='snr1', zkey='z',
                    format=g.default_format, doBazincuts=False):
 
     data = Table()
+    status = False
     # check for acceptable data format
     if not any([f in datafile for v in g.allowed_formats.values() for f in v]):
         print('  Unknown datafile format; expected formats are {}'.format(
                 ', '.join([f for v in g.allowed_formats.values() for f in v])))
-        return data
+        return data, status
 
     # read data file 
     try:
@@ -406,13 +412,6 @@ def read_data_file(key, datafile, SNRcut=5, zhi=g.zhi, SNRkey='snr1', zkey='z',
         print('{}'.format(''.join(['-' for c in msg])))
         data = read(datafile)
         print('  Initial size: {}'.format(len(data)))
-
-        #rename data columns to match defaults for format
-        for k, v in g.alternate_feature_names[format].items():
-            if v in data.columns:
-                data.rename_column(v, k)
-                print('  Renaming column {} to {} to match defaults for {} format'.format(
-                       v, k, format)) 
 
         #make SNRcut
         if SNRkey in data.colnames:
@@ -441,14 +440,17 @@ def read_data_file(key, datafile, SNRcut=5, zhi=g.zhi, SNRkey='snr1', zkey='z',
 
         print('  Total Size of {} Data (after cuts) = {}'.format(key, len(data)))
         print('  Available feature names: \n  {}'.format(', '.join(data.colnames)))
+        status = True
 
-    except:
+    except BaseException as ex:
         print('  Error reading data file {}'.format(datafile))
+        print('  {}'.format(str(ex)))
 
-    return data
+    return data, status
 
 
 def create_type_columns(data, nclass, all_class_values, alltypes_colname='type3',
+                        desired_class_values=g.desired_class_values,
                         target_class_values=[0], type_colnames={}, abort=False, format=g.default_format):
 
     status = True
@@ -459,7 +461,7 @@ def create_type_columns(data, nclass, all_class_values, alltypes_colname='type3'
     if alltypes_colname not in data.colnames:
         print('    Warning: requested alltypes-column-name {} not found'.format(alltypes_colname))
     else:
-        # Check format of alltypes_colname and convert if need be
+        # Check format of alltypes_colname and convert from character types if need be
         if data[alltypes_colname].dtype != int:
             try:
                 sntypes = np.unique(data[alltypes_colname]).tolist()
@@ -468,13 +470,17 @@ def create_type_columns(data, nclass, all_class_values, alltypes_colname='type3'
                 data.rename_column(alltypes_colname, alltypes_colname + _save)
                 data[alltypes_colname] = g.nodata
                 for t in sntypes:
-                    for k, v in all_class_values.items():
+                    for k, v in desired_class_values.items():
                         if k in t:    #match of class
                             tmask = data[alltypes_colname + _save] == t
                             data[alltypes_colname][tmask] = int(v)
+                
+                # Now overwrite target class with the newly assigned default value
+                target_class_values = [g.desired_class_values[g.Ia]]
 
             except:
-                print('    Unable to convert type-labels to standard format: skipping use of class labels')
+                print('    Unable to convert type-labels {} to standard format: skipping use of class labels'.\
+                       format(all_class_values))
                 status = False
 
     # Check for type-columns appropriate to nclass and create them if not available
@@ -496,7 +502,7 @@ def create_type_columns(data, nclass, all_class_values, alltypes_colname='type3'
                         data[cname] = data[alltypes_colname] #copy column with all types
                         mask1 = np.ones(len(data), dtype=bool)
                         for t in target_class_values:
-                            mask1 &= (data[cname] != t)
+                            mask1 &= (data[cname] != int(t))
 
                         data[cname][mask1] =  g.desired_class_values[g.CC]  #binary data
                         data[cname][~mask1] = g.desired_class_values[g.Ia]
@@ -523,7 +529,7 @@ def create_type_columns(data, nclass, all_class_values, alltypes_colname='type3'
                     for i, (v, c) in enumerate(zip(values, counts)):
                         print('    {} class values set to {}'.format(c, v))
                     if len(counts) != abs(nclass):    # check number of types available
-                            print('    Warning: Unexpected number of types ({}) obtained from templates'.format(len(counts)))
+                            print('    Warning: Unexpected number of types ({}) obtained in column {}'.format(len(counts), cname))
                             status = not(abort) #reset status if this would be fatal for training 
     except:
         print('  Unable to read/create labeled column from available data')
@@ -703,7 +709,8 @@ def get_ML_results(dkey, dataset, classifiers, MLtypes, class_values_list, effcy
     #find type corrresponding to target_class value
     target_type = all_class_values.keys()[all_class_values.values().index(int(target_class))]
     
-    print "\n{} DATA RESULTS\n  Target type: {}  (Class_value = {})".format(dkey.upper(), target_type, target_class)
+    print("\n{} DATA RESULTS\n  Target type: {}  (Class_value = {})".format(dkey.upper(),
+                                                                            target_type, target_class))
     
     if not type(class_values_list) == list:
         class_values_list = [class_values_list]
@@ -770,7 +777,7 @@ def get_ML_results(dkey, dataset, classifiers, MLtypes, class_values_list, effcy
                 masks[predict][dkey] = {}
             # determine P_threshold value to use
             if P_threshold is None  or len(P_threshold) ==0:
-                if true_classes is not None: #default to Pthresh_eff if available
+                if true_classes is not None and prekey + g.P_Threshold + eff_id in performance.keys(): #default to Pthresh_eff if available
                     Pthresh = performance[prekey + g.P_Threshold + eff_id]
                     if dkey != g.Test:
                         print('\n    Reverting to fixed-efficiency value {:.3f} based on true types for {}'\
@@ -887,7 +894,7 @@ def get_ML_results(dkey, dataset, classifiers, MLtypes, class_values_list, effcy
                                                   performance[prekey + g.Reject_MaxProb] = Eff, Pur, Rem
                 print('\n    Performance for {} data using Max. Prob. Classification:'.format(dkey))
                 print('      Purity = {:.3f}, Efficiency = {:.3f}'.format(Pur, Eff))
-                print('      Number of non-target SN rejected = {} (Fraction = {:0.2f})'.format(Rem,
+                print('      Number of SN rejected = {} (Fraction = {:0.2f})'.format(Rem,
                              float(Rem)/len(dataset[allprobs_colname])))
 
     print('\n  New columns added to data table:')
@@ -899,7 +906,7 @@ def get_ML_results(dkey, dataset, classifiers, MLtypes, class_values_list, effcy
 def get_template_statistics(template_data, masks, MLtypes, classifications, dkey=g.Test, CLFid=g.RF):
 
     template_info = {}
-    print "\n  Template Statistics for {} Data".format(dkey)
+    print("\n  Template Statistics for {} Data".format(dkey))
 
     for cl in classifications:
         if cl == g.MaxProb:
@@ -977,33 +984,34 @@ def run_cross_validation(data, features, nclass, start_time=-1,
         cvclf = RandomForestClassifier(n_estimators=n_estimators, max_features=max_features, \
                                        min_samples_split=min_samples_split, criterion=criterion, n_jobs=args.nc)
 
-        print '\n\nNow try cross-validation methods ...'
+        print('\n\nNow try cross-validation methods ...')
 
         # Stratified k-fold cross-validation and compute scoring metric each time
-        print '\n----- Stratified K-fold cross-validation -----\n'
+        print('\n----- Stratified K-fold cross-validation -----\n')
 
 
         for k in range(2, 11):
             kf = StratifiedKFold(y_data, n_folds=k, shuffle=True, random_state=42)  # define cross validator
             cv_scores_kf = cross_val_score(cvclf, X_data, y_data, scoring=score_func_est, cv=kf)
-            print 'k={} folds CV scores : '.format(k), cv_scores_kf
+            print('k={} folds CV scores : '.format(k), cv_scores_kf)
             kvals.append(k)
             avgskf.append(np.mean(cv_scores_kf))
             stdkf.append(np.std(cv_scores_kf) / np.sqrt(float(len(cv_scores_kf))))
 
         # ShuffleSplit with n iterations
-        print '\n\n----- ShuffleSplit iterations -----'
+        print('\n\n----- ShuffleSplit iterations -----')
 
         test_step = 0.1
         for ts in np.arange(0.1, 1, test_step):
-            print 'Fractional Validation Size : ', ts
+            print('Fractional Validation Size : {}'.format(ts))
             ss = ShuffleSplit(len(y_data), n_iter=args.niter, test_size=ts, random_state=42)  # BUG: don't use train_size
             for train_index, test_index in ss:
                 train1as = y_data[train_index] == 0
                 test1as = y_data[test_index] == 0
-                print "TRAIN SNIa:", np.count_nonzero(train1as), "\tTEST SNIa:", np.count_nonzero(test1as)
+                print("TRAIN SNIa: {} \tTEST SNIa: {}".format(np.count_nonzero(train1as),
+                                                              np.count_nonzero(test1as)))
             cv_scores_ss = cross_val_score(cvclf, X_data, y_data, scoring=score_func_est, cv=ss)  # array of score values
-            print '\nCV scores (ShuffleSplit) = ', cv_scores_ss
+            print('\nCV scores (ShuffleSplit) = {}'.format(cv_scores_ss))
             # print 'Average Score = ', np.mean(cv_scores_ss)
             # print 'Score Standard Deviation = ', np.std(cv_scores_ss)
             tsvals.append(ts)
@@ -1161,6 +1169,48 @@ def get_weights(alldata, use_data='', default=1.0):
     return alldata
 
 
+def get_MLlists(simlist, possible_datalist, data_files, alltypes_colnames, file_formats):
+    datalist = []
+    for k in [g.Validation, g.Test] + possible_datalist:
+        if len(data_files[k]) > 0:
+            if file_formats[k] in g.allowed_formats:
+                #if file_formats[k] == train_format:
+                    if k in g.simulated_keys:
+                        simlist.insert(0, k)
+                    else:
+                        datalist.append(k)
+                    if k in g.simulated_keys:
+                        if alltypes_colnames[k] != g.data_defaults[file_formats[k]]['alltypes_colname_default']:
+                            print('  Warning: supplied alltypes_colname ({}) for {} data != default ({}) for file format {}'.\
+                                  format(alltypes_colnames[k], k, g.data_defaults[file_formats[k]]['alltypes_colname_default'],
+                                         file_formats[k]))
+                    else:
+                        ulabel = 'Un-labeled' if alltypes_colnames[k] == '' else 'Labeled by ' + alltypes_colnames[k]
+                        print('  Including user-supplied data from {} with key/label {}; SN types: {}'.format(data_files[k], k, ulabel))
+                #else:
+                #    print('  Skipping {} data; file {} not in training format ({})'.format(k, data_files[k], train_format))
+            else:
+                print('  Skipping {} data; file {} not in allowed format'.format(k, data_files[k]))
+                
+    print('\nProcessing {} data sets'.format(', '.join(simlist + datalist)))
+
+    return simlist, datalist
+
+def copy_columns(data, features, train_format):
+    #copy data columns to match defaults for training_format
+
+    print('\n  Checking for alternate feature names to match defaults for {} training format'.format(train_format))
+    for k, f in g.alternate_feature_names[train_format].items():
+        fnames = f if type(f)==list else [f]
+        for v in fnames:
+            if k in features and v in data.columns and k not in data.columns:
+                #data.rename_column(v, k)
+                data[k] = data[v]
+                print('  Copying column {} to {}'.format(v, k))
+
+    return data
+
+
 def get_file_info(data_files):
     file_formats = {}
     file_types = {}
@@ -1203,8 +1253,13 @@ def main(args, start_time=-1):
 
     print_heading(version)
     Fixed_effcy = args.eff  # fix efficiency to selected values
-    print('\nCommit-hash for code: {}'.format(retrieve_commit_hash(args.path_to_repo)[0:7]))
-
+    if len(args.commit_hash_path) > 0:
+        if os.path.exists(args.commit_hash_path):
+            print('\nCommit-hash for code: {}'.format(retrieve_commit_hash(args.commit_hash_path)[0:7]))
+        else:
+            print('\nPath {} for repository to retrieve commit hash does not exist'.format(
+                   args.commit_hash_path))
+ 
     # Setup type lists to be used in code, printing, plotting
     MLtypes = [g.Ia, g.CC] if args.nclass == 2 else [g.Ia, g.Ibc, g.II]
     nway = '2x2' if args.nclass == -2 else args.nclass
@@ -1273,16 +1328,18 @@ def main(args, start_time=-1):
     if not args.restore:
         doBazincuts_train = doBazincuts and args.Bazincuts == 'train'
         # read data and apply cuts 
-        data_train = read_data_file(g.Training, args.train, SNRcut=SNRcut, zhi=g.zhi[g.Training], 
-                                    zkey=g.feature_names['z'][train_format], format=file_formats[g.Training],
-                                    SNRkey=g.feature_names['snr1'][train_format], 
-                                    doBazincuts=doBazincuts_train)
+        data_train, status = read_data_file(g.Training, args.train, SNRcut=SNRcut, zhi=g.zhi[g.Training], 
+                                            zkey=g.feature_names['z'][train_format], format=file_formats[g.Training],
+                                            SNRkey=g.feature_names['snr1'][train_format], 
+                                            doBazincuts=doBazincuts_train)
+        if not status:
+           exit_code(args.done_file, status=g.FAILURE, start_time=start_time) 
         simlist.append(g.Training) 
         
         # Check/create columns required for nclass-way training and reset target_class values as required
         data_train, status = create_type_columns(data_train, args.nclass, all_class_values,
                                                  type_colnames=type_colnames,
-                                                 alltypes_colname=args.alltypes_colname_train,
+                                                 alltypes_colname=alltypes_colnames[g.Training],
                                                  target_class_values=args.target_class_values,
                                                  abort=True, format=train_format)
         if not status:
@@ -1332,6 +1389,7 @@ def main(args, start_time=-1):
             print('\nLoading pre-classifier from file pre{}'.format(pklfile))
             classifiers.insert(0, clfpre)
         print('\nLoading classifier from pklfile {}'.format(pklfile))
+        # g.Training not added to simlist since feature sets etc needed for ML_stats not available
     else:
         if CLFid == g.RF:
             _result = build_RF_classifier(data_train, args.nclass, args.ft, args.nc, alltypes_colnames[g.Training],
@@ -1349,6 +1407,9 @@ def main(args, start_time=-1):
                 print('\nSaving classifier to file {}'.format(pklfile))
         else:
             print('\nUnknown classifier {}'.format(CLFid))
+
+    # Save all_class_values after successful training/restore using txt format designations
+    #all_class_values_reset = g.desired_class_values
                      
     # Determine feature importances for tree-based estimators (RF, AdaBoost)
     for n, cl in enumerate(classifiers):
@@ -1380,38 +1441,17 @@ def main(args, start_time=-1):
         user_labels = [g.User+str(i) if i >= len(user_labels) else user_labels[i] for i,_ in enumerate(args.user_data)]
     if len(args.user_data) > 0:
         user_files = dict(zip(user_labels, args.user_data))
-        user_formats = get_file_formats(user_files)
+        user_formats, user_types = get_file_info(user_files)
         data_files.update(user_files)
         file_formats.update(user_formats)
+        file_types.update(user_types)
         user_alltypes_colnames = args.user_alltypes_colnames if len(args.user_alltypes_colnames) > 0 else ['' for f in user_files]
         alltypes_colnames.update(dict(zip(user_labels, user_alltypes_colnames)))
 
     # Setup simlist and datalist for running classifier
     print('\nChecking requested data sets for allowed formats and compatibility')
     possible_datalist = [t for t in args.data if g.Spec == t or g.Phot == t or g.Spec_nofp == t]
-    datalist = []
-    for k in [g.Validation, g.Test] + possible_datalist + user_labels:
-        if len(data_files[k]) > 0:
-            if file_formats[k] in g.allowed_formats:
-                if file_formats[k] == train_format:
-                    if k in g.simulated_keys:
-                        simlist.insert(0, k)
-                    else:
-                        datalist.append(k)
-                    if k in g.simulated_keys:
-                        if alltypes_colnames[k] != g.data_defaults[file_formats[k]]['alltypes_colname_default']:
-                            print('  Warning: supplied alltypes_colname ({}) for {} data != default ({}) for file format {}'.\
-                                  format(alltypes_colnames[k], k, g.data_defaults[file_formats[k]]['alltypes_colname_default'],
-                                         file_formats[k]))
-                    else:
-                        ulabel = 'Un-labeled' if alltypes_colnames[k] == '' else 'Labeled by ' + alltypes_colnames[k]
-                        print('  Including user-supplied data from {} with key/label {}; SN types: {}'.format(data_files[k], k, ulabel))
-                else:
-                    print('  Skipping {} data; file {} not in training format ({})'.format(k, data_files[k], train_format))
-            else:
-                print('  Skipping {} data; file {} not in allowed format'.format(k, data_files[k]))
-                
-    print('\nProcessing {} data sets'.format(', '.join(simlist + datalist)))
+    simlist, datalist = get_MLlists(simlist, possible_datalist + user_labels, data_files, alltypes_colnames, file_formats)
 
     # setup unique file-id for saving classifications etc
     file_id = '{}'.format(args.filestr)
@@ -1432,18 +1472,24 @@ def main(args, start_time=-1):
             zkey = g.Data if dkey in datalist else dkey
             format_this = file_formats[dkey]
             if format_this not in g.allowed_formats:
-                print('Skipping data file {} in unsupported format'.format(data_files[dkey]))
+                print('  Skipping data file {} in unsupported format'.format(data_files[dkey]))
                 continue
-            data_this = read_data_file(dkey, data_files[dkey], SNRcut, zhi=g.zhi[zkey],
+            # read in data and copy column names to train_format if need be
+            data_this, status = read_data_file(dkey, data_files[dkey], SNRcut, zhi=g.zhi[zkey],
                                        zkey=g.feature_names['z'][format_this], format=format_this,
-                                       SNRkey=g.feature_names['snr1'][format_this])                                
+                                       SNRkey=g.feature_names['snr1'][format_this])
+            if not status:
+                print('  Skipping data file {}'.format(data_files[dkey])) 
         else:
             data_this = data_train
             format_this = train_format
 
-        if len(data_this) == 0 or format_this != train_format:
-            print('Skipping {} data file: file is empty or not in training format'.format(dkey))
+        if len(data_this) == 0:
+            print('  Skipping empty {} data file'.format(dkey))
             continue
+
+        # copy feature-name columns to align with defaults for training format
+        data_this = copy_columns(data_this, args.ft, train_format)
 
         # run classification to get classes and probabilities if required
         if dkey == g.Training and not args.restore:
@@ -1452,10 +1498,11 @@ def main(args, start_time=-1):
             classes_this = None   #default for unlabeled data
             data_this, feature_sets[dkey] = run_RF_classifier(dkey, classifiers, data_this, args.nclass, args.ft)
             if len(alltypes_colname) > 0:                 
-                #check column name exits
+                #check type column name exits and try to create it if not
                 data_this, status = create_type_columns(data_this, args.nclass, all_class_values, 
                                                         type_colnames=type_colnames,
-                                                        alltypes_colname=alltypes_colname, target_class_values=args.target_class_values,
+                                                        alltypes_colname=alltypes_colname, 
+                                                        target_class_values=args.target_class_values,
                                                         abort=False, format=format_this)
                 #reset alltypes_colname to unlabeled data if column for labeled data unusable/not found
                 alltypes_colname = '' if status==False else g.data_defaults[g.default_format]['type_colnames'][str(args.nclass)]
@@ -1470,14 +1517,14 @@ def main(args, start_time=-1):
             P_eff_ref = []
             for eff in Fixed_effcy:
                 eff_id = g._Eff.format(eff)
-                if g.Test in performance.keys():
+                if g.Test in performance.keys() and g.P_Threshold + eff_id in performance[g.Test].keys():
                     P_eff_ref.append(performance[g.Test][g.P_Threshold + eff_id])
 
             if len(P_eff_ref) > 0:
                 print('\n**Using Test-data probability threshold(s) {} for fixed-efficiency classification**'.\
                       format(', '.join(['{:.3f}'.format(p) for p in P_eff_ref])))
 
-        # get ML results
+        # get ML results using class values obtained from created columns
         _result = get_ML_results(dkey, data_this, classifiers, MLtypes, classes_this, Fixed_effcy, args.nclass,
                                  masks=type_masks, all_class_values=g.desired_class_values, P_threshold=P_eff_ref)
         performance[dkey], type_masks = _result
@@ -1486,12 +1533,12 @@ def main(args, start_time=-1):
         #    for kk, vv in v.items():
         #        print kk, vv.keys()
 
-        # Compute ROC curve, AUC, class probabilities for labeled types
+        # Compute ROC curve, AUC, class probabilities for labeled types using created class values
         if len(alltypes_colname) > 0:
             ROC = {}
             print('\n Evaluating ROC curves')
-            if type_colnames['2'] not in data_this.colnames: # check for binary label
-                data_this, status = create_type_columns(data_this, 2, all_class_values,
+            if type_colnames['2'] not in data_this.colnames: # check for binary label; use txt format class values
+                data_this, status = create_type_columns(data_this, 2, all_class_values=g.desired_class_values,
                                                         type_colnames=type_colnames,
                                                         alltypes_colname=alltypes_colname, target_class_values=[target_class],
                                                         abort=False, format=format_this)
@@ -1511,23 +1558,33 @@ def main(args, start_time=-1):
             # Measured Classification Probability for Ias (calibration curve computes this for us)
             Nbins_RFP = 20
             true = type_masks[g.TrueType][dkey]
-            fraction_true, meanpr = calibration_curve(true[g.Ia],
+            print('\n  Fraction of True Positives in {} probabilty bins'.format( Nbins_RFP))
+            if np.count_nonzero(true[g.Ia]) < len(true[g.Ia]):
+                fraction_true, meanpr = calibration_curve(true[g.Ia],
                                                       data_this[g.RFprobability + str(target_class)],
                                                       n_bins=Nbins_RFP)
-            print('\n  Fraction of True Positives in {} probabilty bins'.format( Nbins_RFP))
+            else:  # compute manually when only Ias in sample
+                N_pr, bins = np.histogram(data_this[g.RFprobability + str(target_class)],
+                                    bins=np.linspace(0., 1. , Nbins_RFP+1))
+                Sum_pr,_ = np.histogram(data_this[g.RFprobability + str(target_class)], bins=bins,
+                                 weights=data_this[g.RFprobability + str(target_class)])
+                fraction_true = np.asarray([ 1.0 if N_pr[n] > 0 else 0. for n in range(len(N_pr))])
+                meanpr = np.asarray([Sum_pr[n]/N_pr[n] if N_pr[n] > 0 else 0. for n in range(len(N_pr))])
             print ('    {}'.format(' '.join(['{:.3f}'.format(f) for f in fraction_true])))
             performance[dkey][g.Fr_True] = fraction_true
             performance[dkey][g.Mean_Pr] = meanpr
-
-
+                
         # save data alldata for further processing if required
         alldata[dkey] = data_this
                    
         # TEMPLATE STATISTICS for Test Data (need simulated data)
         if dkey == g.Test:
-            classifications = Fixed_effcy + [g.MaxProb]
-            template_info = get_template_statistics(data_this[g.feature_names['sim_template'][format_this]], 
+            if len(alltypes_colname) > 0:
+                classifications = Fixed_effcy + [g.MaxProb]
+                template_info = get_template_statistics(data_this[g.feature_names['sim_template'][format_this]], 
                                                     type_masks, MLtypes, classifications, dkey=dkey)
+            else:
+                print('\n  Skipping template statistics due to missing column with labeled types')
 
         #write out selected data to astropy table
         save_data = Table()
@@ -1621,6 +1678,6 @@ if __name__ == '__main__':
     try:
         performance = main(args, start_time=start_time)
         exit_code(args.done_file, status=g.SUCCESS, start_time=start_time)
-    except BaseException, ex:
+    except BaseException as ex:
         traceback.print_exc()
         exit_code(args.done_file, status=g.EXCEPTION, msg=ex, start_time=start_time) 

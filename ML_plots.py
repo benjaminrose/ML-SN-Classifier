@@ -455,7 +455,8 @@ def plot_types(f, types, xvar, alldata, plotlist=[''], masks={}, weights=True, t
         if (len(plotlist) > 1):
             datalist = plotlist[-1] if type(plotlist[-1]) == list else [plotlist[-1]]
     else:
-        print "Invalid plotlist: supply list of dict keys to be plotted:[g.Test, g.Spec] or [[bytypelist], [datalist]]"
+        print('Invalid plotlist: supply list of dict keys to be plotted:' +\
+              '[g.Test, g.Spec] or [[bytypelist], [datalist]]')
 
     if (len(datalist) > 0):  # plot data
         for data in datalist:
@@ -1252,8 +1253,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                                                     lgnd_title=classification_labels[mkey], contour_label=clabel)
                         fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage)
                         if closed:
-		            page_total += 1
-
+                            page_total += 1
                     else:
                         print('  Not found', dkey, 'for', mkey)
 
@@ -1326,7 +1326,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             nplot = 0
             fig = plt.figure(figsize=(figx, figy))
             for combo in combos:
-		for mkey, tmask in type_masks.items():
+                for mkey, tmask in type_masks.items():
                     types = MLtypes_plot if g.TrueType in mkey else CLFtypes_plot   # types corresponding to mask choice
                     print('  Plotting {} Data ({})'.format(' + '.join([c for sublist in combo for c in sublist]),
                                                            classification_labels[mkey]))
@@ -1365,8 +1365,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                                                         y_min=ymin, y_max=ymax, xlabel=SALTlabels[xvar], ylabel=SALTlabels[yvar])
                             fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage)
                         if closed:
-		            page_total += 1
-
+                            page_total += 1
                     else:
                         print('  Not found', dkey, 'for', mkey)
 
@@ -1387,7 +1386,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             valid_keys = get_valid_keys(alldata, SALTfilters)
             mag_combos = get_valid_combos(combos, valid_keys)
             for combo in mag_combos:
-		for mkey, tmask in type_masks.items():
+                for mkey, tmask in type_masks.items():
                     if closed:    #check if new fig needed
                         fig, ax = plt.subplots(nrow8, ncol8, figsize=(figx, figy), sharex='col')
                     types = MLtypes_plot if g.TrueType in mkey else CLFtypes_plot   # types corresponding to mask choice
@@ -1420,7 +1419,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             color_combos = get_valid_combos(combos, valid_keys)
             fig = plt.figure(figsize=(figx, figy))
             for combo in color_combos:
-		for mkey, tmask in type_masks.items():
+                for mkey, tmask in type_masks.items():
                     types = MLtypes_plot if g.TrueType in mkey else CLFtypes_plot   # types corresponding to mask choice
                     print('\n  Plotting {} Data ({})'.format(' + '.join([c for sublist in combo for c in sublist]),
                                                            classification_labels[mkey]))
@@ -1473,7 +1472,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                                                         xlabel=SALTcolordifflabels[c1], ylabel=SALTcolordifflabels[c2])
                             fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage)
                         if closed:
-		            page_total += 1
+                            page_total += 1
 
                     else:
                         print('  Not found', dkey, 'for', mkey)
@@ -1527,7 +1526,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             fig = plt.figure(figsize=(figx, figy))
             #for combo in [bazin_combos[0]]:
             for combo in bazin_combos:
-		for mkey, tmask in type_masks.items():
+                for mkey, tmask in type_masks.items():
                     types = MLtypes_plot if g.TrueType in mkey else CLFtypes_plot   # types corresponding to mask choice
                     print('\n  Plotting {} Data ({})'.format(' + '.join([c for sublist in combo for c in sublist]),
                                                            classification_labels[mkey]))
@@ -1554,7 +1553,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                         
                     nplot = plot_Bazincolors(fig, combo, alldata, types, tmask, nplot=nplot, cuts=Bazincombinedmask,
                                                lgnd_title=classification_labels[mkey], cut_keys=True, minmax=minmax, debug=debug)
-		    fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage)
+                    fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage)
                     if closed:
                         page_total += 1
                         
@@ -1654,7 +1653,7 @@ def plot_scatter_Bazin_color(): #TBD
         ybinwidth = [2]
         # add scatter plot t_rise vs t_fall;
         for l, s in zip([Training] + MLdatalist,  g.Simulated + [g.Data for m in MLdatalist]):
-            print "\nStarting page", npages, "(Bazin scatterplots)\n"
+            print('\nStarting page {} (Bazin scatterplots)\n'.format(npages))
             fig = plt.figure(figsize=(figx, figy))
             npages += 1
             nplot = 0
@@ -1692,7 +1691,7 @@ def plot_scatter_Bazin_color(): #TBD
 
 def plot_cross_validation():  #TBD
     if (args.cv or args.pc):
-        print "\nStarting page", npages, "(Cross-Validation and Purity)\n"
+        print('\nStarting page {} (Cross-Validation and Purity)\n'.format(npages))
         fig = plt.figure(figsize=(figx, figy))
         if (args.cv):
             minval = np.fmin(np.min(avgskf), np.min(avgss))
@@ -1736,7 +1735,7 @@ def plot_probability_variance(alldata, prvar=False): #TBD
         pr_bins = np.arange(0.0, 1., pr_binwidth)
         pcolors = ['r', 'g', 'blue', 'cyan', 'magenta', 'y', 'orange', 'navy', 'pink', 'purple']
 
-        print "Decision-Tree Probabilities"
+        print('Decision-Tree Probabilities')
         f = fig.add_subplot(plot_offset6 + nplot1)
         f.set_xlabel('Test-Data Decision-Tree SNIa Probability')
         f.set_ylabel('Number')
@@ -1752,13 +1751,14 @@ def plot_probability_variance(alldata, prvar=False): #TBD
                     trueIa)  # include 1.0 in last bin
                 plabel = str(pr_bins[npr]) + '-' + str(pr_bins[npr] + pr_binwidth)
             probdata = pdata[probcut][:, 0]  # find tree probs for this pr_bin for this SN type
-            print "Found", len(probdata), "SNIa matching cuts for pr_bin", npr, ":", pr_bins[npr], "-", pr_bins[
-                                                                                                            npr] + pr_binwidth, "(", len(
-                probdata.flatten()), " prob. values)"
+            print('Found {} SNIa matching cuts for pr_bin {}: {}-{} ({} prob. values)'.format(len(probdata),
+                                                                                              npr, pr_bins[npr], 
+                                                                                              pr_bins[npr] + pr_binwidth,
+                                                                                              len(probdata.flatten())))
             plt.hist(probdata.flatten(), bins=p_bins, color=pcolors[npr], histtype='step', alpha=totalpha,
                      label=plabel)  # ,normed=True)
         f.legend(loc='upper center', scatterpoints=1, ncol=Ncols, fontsize='small')
-        print ""
+        
 
         if (args.nclass == 2):
             f = fig.add_subplot(plot_offset6 + nplot2)
@@ -1776,13 +1776,13 @@ def plot_probability_variance(alldata, prvar=False): #TBD
                         trueCC)  # include 1.0 in last bin
                     plabel = str(pr_bins[npr]) + '-' + str(pr_bins[npr] + pr_binwidth)
                 probdata = pdata[probcut][:, 1]  # find tree probs for this pr_bin for this SN type
-                print "Found", len(probdata), "SNCC matching cuts for pr_bin", npr, ":", pr_bins[npr], "-", pr_bins[
-                                                                                                                npr] + pr_binwidth, "(", len(
-                    probdata.flatten()), " prob. values)"
+                print('Found {} SNCC matching cuts for pr_bin {}: {}-{} ({} prob. values)'.format(len(probdata),
+                                                                                                  npr, pr_bins[npr],
+                                                                                                  pr_bins[npr] + pr_binwidth,
+                                                                                                  len(probdata.flatten())))
                 plt.hist(probdata.flatten(), bins=p_bins, color=pcolors[npr], histtype='step', alpha=totalpha,
                          label=plabel)  # ,normed=True)
             f.legend(loc='upper center', scatterpoints=1, ncol=Ncols, fontsize='small')
-            print ""
         else:
             f = fig.add_subplot(plot_offset6 + nplot2)
             f.set_xlabel('Test-Data Decision-Tree SNIbc Probability')
@@ -1799,14 +1799,14 @@ def plot_probability_variance(alldata, prvar=False): #TBD
                         trueIbc)  # include 1.0 in last bin
                     plabel = str(pr_bins[npr]) + '-' + str(pr_bins[npr] + pr_binwidth)
                 probdata = pdata[probcut][:, 1]  # find tree probs for this pr_bin for this SN type
-                print "Found", len(probdata), "SNIbc matching cuts for pr_bin", npr, ":", pr_bins[npr], "-", pr_bins[
-                                                                                                                 npr] + pr_binwidth, "(", len(
-                    probdata.flatten()), " prob. values)"
+                print('Found {} SNIbc matching cuts for pr_bin {}: {}-{} ({} prob. values)'.format(len(probdata),
+                                                                                                  npr, pr_bins[npr],
+                                                                                                  pr_bins[npr] + pr_binwidth,
+                                                                                                  len(probdata.flatten())))
                 plt.hist(probdata.flatten(), bins=p_bins, color=pcolors[npr], histtype='step', alpha=totalpha,
                          label=plabel)  # ,normed=True)
             f.legend(loc='upper center', scatterpoints=1, ncol=Ncols, fontsize='small')
 
-            print ""
             f = fig.add_subplot(plot_offset6 + nplot3)
             f.set_xlabel('Test-Data Decision-Tree SNII Probability')
             f.set_ylabel('Number')
@@ -1822,14 +1822,14 @@ def plot_probability_variance(alldata, prvar=False): #TBD
                         trueII)  # include 1.0 in last bin
                     plabel = str(pr_bins[npr]) + '-' + str(pr_bins[npr] + pr_binwidth)
                 probdata = pdata[probcut][:, 2]  # find tree probs for this pr_bin for this SN type
-                print "Found", len(probdata), "SNII matching cuts for pr_bin", npr, ":", pr_bins[npr], "-", pr_bins[
-                                                                                                                npr] + pr_binwidth, "(", len(
-                    probdata.flatten()), " prob. values)"
+                print('Found {} SNII matching cuts for pr_bin {}: {}-{} ({} prob. values)'.format(len(probdata),
+                                                                                                  npr, pr_bins[npr],
+                                                                                                  pr_bins[npr] + pr_binwidth,
+                                                                                                  len(probdata.flatten())))
                 plt.hist(probdata.flatten(), bins=p_bins, color=pcolors[npr], histtype='step', alpha=totalpha,
                          label=plabel)  # ,normed=True)
                 f.legend(loc='upper center', scatterpoints=1, ncol=Ncols, fontsize='small')
 
-        print ""
         f = fig.add_subplot(plot_offset6 + nplot4)
         f.set_xlabel('Test-Data Random Forest SNIa Probability')
         f.set_ylabel('SNIa Probability Variance')
