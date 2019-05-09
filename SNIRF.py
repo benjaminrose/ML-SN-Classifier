@@ -553,7 +553,6 @@ def get_mask_from_templates(templates, sntypes=[g.Ia], Templates_Ia=[0]):
 
 def print_heading(v):
 
-    print
     print('******************************************')
     print('*              {}_v{}                *'.format(g.name, v))
     print('*  {}  *'.format(g.description))
