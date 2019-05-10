@@ -141,14 +141,16 @@ allowed_features = {'text': ['c', 'x0', 'x1', 't0', 'z', 'chi2', 'fit_pr', 'gpea
                               'SIMNULL1', 'SIM_RV', 'SIM_x0', 'SIM_mB'],
                     }
 
-alternate_feature_names = {'text': {'z': 'zCMB', 't0':'PKMJD', 't0_err':'PKMJDERR',
-                                    'x0_err':'x0ERR', 'x1_err':'x1ERR', 'c_err':'cERR', 'chi2':'FITCHI2', 'dof':'NDOF', 
-                                    'fit_pr':'FITPROB', 'snr1':'SNRMAX1', 'snr2':'SNRMAX2', 'snr3':'SNRMAX3', 'field':'FIELD',
-                                    'sim_type':'SIM_TYPE_INDEX', 'sim_idx':'SIM_TEMPLATE_INDEX',
+alternate_feature_names = {'text': {'snid':'CID', 'z':'zCMB', 't0':'PKMJD', 't0_err':'PKMJDERR',
+                                    'x0_err':'x0ERR', 'x1_err':'x1ERR', 'c_err':'cERR', 
+                                    'chi2':'FITCHI2', 'dof':'NDOF', 
+                                    'fit_pr':'FITPROB', 'snr1':'SNRMAX1', 'snr2':'SNRMAX2', 'snr3':'SNRMAX3',
+                                    'sim_type':'SIM_TYPE_INDEX', 'sim_nonIa':'SIM_TEMPLATE_INDEX',
                                     },
-                           'fitres':{'zCMB':'z', 'PKMJD':'t0', 'PKMJDERR':['PKMJDerr', 't0_err'], 'FITCHI2':'chi2', 'FITPROB':'fit_pr',
+                           'fitres':{'CID':'snid','zCMB':'z', 'PKMJD':'t0', 'PKMJDERR':['PKMJDerr', 't0_err'],
+                                     'FITCHI2':'chi2', 'FITPROB':'fit_pr',
                                      'SNRMAX1':'snr1', 'SNRMAX2':'snr2', 'SNRMAX3':'snr3', 'SIM_TYPE_INDEX':'sim_type',
-                                     'SIM_TEMPLATE_INDEX':'sim_idx', 
+                                     'SIM_TEMPLATE_INDEX':'sim_nonIa', 
                                      'x0ERR':'x0_err', 'x1ERR': 'x1_err', 'cERR': 'c_err',
                                     }
                           }
@@ -156,28 +158,26 @@ alternate_feature_names = {'text': {'z': 'zCMB', 't0':'PKMJD', 't0_err':'PKMJDER
 desired_class_values = {Ia:0, Ib:1, Ic:1, Ibc:1, II:2, CC:1}
 
 data_defaults = {'text':{'alltypes_colname':'type3',
-                         'target_class':[0],
                          'type_labels':[Ia, II, Ibc, Ib, Ic],
-                         'type_values':[0, 2, 1, 1, 1],
+                         'type_values':[[0], [2], [1], [1], [1]],
                          'type_colnames': {'2':'type', '3':'type3', '-2':['type2x2','type']},
                          'alltypes_colname_default':'type3',
                          'alltypes_available':True,
                         },
                  'fitres':{'alltypes_colname':'TYPE',
-                           'target_class':[1, 101],
                            'type_labels':[Ia],
                            'type_values':[[1, 101]],
-                           'type_colnames': {'2':'type', '3':'type3', '-2':['type2x2','type']}, #add entries for creation on the fly
+                           'type_colnames': {'2':'type', '3':'type3', '-2':['type2x2','type']}, #create on the fly
                            'alltypes_colname_default':'TYPE',  #only binary typing available
                            'alltypes_available':False,
                           }
                 }
 
-feature_names = {'z':{'text':'z', 'fitres':'zCMB'},
-                 'snr1':{'text':'snr1', 'fitres':'SNRMAX1'},
-                 'sim_type':{'text':'sim_type', 'fitres':'SIM_TYPE_INDEX'},
-                 'sim_template':{'text':'sim_nonIa', 'fitres':'SIM_TEMPLATE_INDEX'},
-                 'snid':{'text':'snid','fitres':'CID'},                 
+generic_feature_names = {'z':{'text':'z', 'fitres':'zCMB'},
+                         'snrmx':{'text':'snr1', 'fitres':'SNRMAX1'},
+                         'sim_type':{'text':'sim_type', 'fitres':'SIM_TYPE_INDEX'},
+                         'sim_template':{'text':'sim_nonIa', 'fitres':'SIM_TEMPLATE_INDEX'},
+                         'snid':{'text':'snid','fitres':'CID'},                 
                 } 
 
 allowed_templates = {'2P':['20'], '2N':['21'], '2L':['22'], '1b':['32'], '1c':['33'],

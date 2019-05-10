@@ -183,8 +183,6 @@ def parse_args(argv):
                         help='Column name for true SN types in validation data, ')
     parser.add_argument('--alltypes_colname_test', default='type3', 
                         help='Column name for true SN types in test data, ')
-    parser.add_argument('--target_class_values', nargs='+', default=g.data_defaults[g.default_format]['target_class'], 
-                        help='List of class values of target type for computing probabilities (eg. SNIa)')
     parser.add_argument('--type_labels', default=g.data_defaults[g.default_format]['type_labels'], nargs='+',
                         help='Labels for classes in alltypes_colname (supply one per typename); CC assumed to be ~Ia')
     parser.add_argument('--type_values', default=g.data_defaults[g.default_format]['type_values'], nargs='+', 
@@ -451,7 +449,7 @@ def read_data_file(key, datafile, SNRcut=5, zhi=g.zhi, SNRkey='snr1', zkey='z',
 
 def create_type_columns(data, nclass, all_class_values, alltypes_colname='type3',
                         desired_class_values=g.desired_class_values,
-                        target_class_values=[0], type_colnames={}, abort=False, format=g.default_format):
+                        type_colnames={}, abort=False, format=g.default_format):
 
     status = True
     print('\n  Checking format and values for columns with labeled data')
@@ -476,11 +474,12 @@ def create_type_columns(data, nclass, all_class_values, alltypes_colname='type3'
                             data[alltypes_colname][tmask] = int(v)
                 
                 # Now overwrite target class with the newly assigned default value
-                target_class_values = [g.desired_class_values[g.Ia]]
+                all_class_values = g.desired_class_values
 
-            except:
+            except BaseException as ex:
                 print('    Unable to convert type-labels {} to standard format: skipping use of class labels'.\
                        format(all_class_values))
+                print('    {}'.format(str(ex)))
                 status = False
 
     # Check for type-columns appropriate to nclass and create them if not available
@@ -495,6 +494,8 @@ def create_type_columns(data, nclass, all_class_values, alltypes_colname='type3'
             colnames = type_colnames[str(nclass)] if type(type_colnames[str(nclass)])==list \
                                                   else [type_colnames[str(nclass)]]
             for cname in colnames:
+                target_class_values = all_class_values[g.Ia] if type(all_class_values[g.Ia]) == list else \
+                                          [all_class_values[g.Ia]]
                 if cname not in data.colnames or cname == 'type2x2': #force 2x2 recompute
                     print('    Creating column "{}" used for {}-way typing'.format(cname, nclass))
                     if nclass == 2:  #binary class
@@ -511,15 +512,15 @@ def create_type_columns(data, nclass, all_class_values, alltypes_colname='type3'
                         if g.data_defaults[format]['alltypes_available']:
                             mask1 = data[cname] ==  all_class_values[g.Ibc]
                         else:
-                            mask1 = get_mask_from_templates(data[g.feature_names['sim_template'][format]], [g.Ib, g.Ic])
+                            mask1 = get_mask_from_templates(data[g.generic_feature_names['sim_template'][format]], [g.Ib, g.Ic])
                         data[cname][mask1] = g.desired_class_values[g.Ia]  # reset label for Ibc to Ia value
                     elif nclass == 3:
                         print('    Attempting to use template information from data column {} to reconstruct SN types'.\
-                                 format(g.feature_names['sim_template'][format]))
+                                 format(g.generic_feature_names['sim_template'][format]))
                         data[cname] = g.desired_class_values[g.II]  # start with type 2
                         print('    Initialized column "{}" with values = {}'.format(cname, g.desired_class_values[g.II]))
                         for sn in [[g.Ia], [g.Ib, g.Ic]]:
-                            mask = get_mask_from_templates(data[g.feature_names['sim_template'][format]], sn)
+                            mask = get_mask_from_templates(data[g.generic_feature_names['sim_template'][format]], sn)
                             if np.count_nonzero(mask) > 0:
                                 data[cname][mask] = g.desired_class_values[sn[0]]
                     else:
@@ -531,8 +532,9 @@ def create_type_columns(data, nclass, all_class_values, alltypes_colname='type3'
                     if len(counts) != abs(nclass):    # check number of types available
                             print('    Warning: Unexpected number of types ({}) obtained in column {}'.format(len(counts), cname))
                             status = not(abort) #reset status if this would be fatal for training 
-    except:
+    except BaseException as ex:
         print('  Unable to read/create labeled column from available data')
+        print('    {}'.format(str(ex)))
         status = False
 
     return data, status
@@ -581,7 +583,7 @@ def build_RF_classifier(data_train, nclass, features, ncores, alltypes_colname, 
                         n_estimators = 100, max_features = 'auto', min_samples_split = 5, criterion = 'entropy'):
 
     print
-    print('*************************')
+    print('\n*************************')
     print('*  BUILDING CLASSIFIER  *')
     print('*************************')
     print('Training with {} features [{}]'.format(len(features), ' '.join(features)))
@@ -706,7 +708,7 @@ def get_ML_results(dkey, dataset, classifiers, MLtypes, class_values_list, effcy
         return performance, masks
 
     #find type corrresponding to target_class value
-    target_type = all_class_values.keys()[all_class_values.values().index(int(target_class))]
+    target_type = list(all_class_values.keys())[list(all_class_values.values()).index(int(target_class))]
     
     print("\n{} DATA RESULTS\n  Target type: {}  (Class_value = {})".format(dkey.upper(),
                                                                             target_type, target_class))
@@ -1209,6 +1211,35 @@ def copy_columns(data, features, train_format):
 
     return data
 
+def check_alltypes_colname(dkey, alltypes_colname, file_format, data_file):
+    # check alltypes colname to make sure it is compatible with format id supplied parameter is the default one.
+
+    if len(alltypes_colname) > 0:
+        print('\n  Checking supplied column name for labeled data')
+        if alltypes_colname != g.data_defaults[file_format]['alltypes_colname'] and \
+                alltypes_colname == g.data_defaults[g.default_format]['alltypes_colname']:
+            alltypes_colname = g.data_defaults[file_format]['alltypes_colname']
+            print('    Warning: resetting supplied alltypes_colname for {} data to "{}" (default for data file {})'.\
+                      format(dkey, alltypes_colname, data_file))
+        else:
+            print('    Column name {} OK: compatible with {} format'.format(alltypes_colname, file_format))
+
+    return alltypes_colname
+
+
+def check_all_class_values(all_class_values, file_format):
+
+    print('\n  Checking supplied class values for labeled data')
+    if not all([v in g.data_defaults[file_format]['type_values'] for _,v in all_class_values.items()]):
+        all_class_values = dict(zip(g.data_defaults[file_format]['type_labels'],
+                                       g.data_defaults[file_format]['type_values']))
+        print('    Warning: over-riding supplied arguments to {} based on {} data format'.format(all_class_values,
+                                                                                                 file_format))
+    else:
+        print('    Class values {} OK: compatible with {} format'.format(all_class_values,  file_format))
+
+    return all_class_values
+
 
 def get_file_info(data_files):
     file_formats = {}
@@ -1281,55 +1312,48 @@ def main(args, start_time=-1):
     alltypes_colnames = dict(zip(g.datafile_keys, alltypes_colname_args))
     
     # Check format of training/pkl data
+    print('\nRunning checks on supplied/default arguments')
     train_format = file_formats[g.Training]
     if train_format not in g.allowed_formats:
-        print('\nTraining/pkl datafile ({}) not in allowed format: {} required'.format(data_files[g.Training], 
+        print('  Training/pkl datafile ({}) not in allowed format: {} required'.format(data_files[g.Training], 
               ' or '.join([f for v in g.allowed_formats.values() for f in v])))
         exit_code(args.done_file, status=g.FAILURE, start_time=start_time)
     if not args.restore and train_format != args.train_format or args.restore and train_format != args.pklformat:
-        print('\nWarning: resetting supplied training/pkl file-format argument to "{}" based on format of training/pkl data ({})'.\
+        print('  Warning: resetting supplied training/pkl file-format argument to "{}" (format of data file {})'.\
                   format(train_format, data_files[g.Training]))
-    if alltypes_colnames[g.Training] != g.data_defaults[train_format]['alltypes_colname']: #TODO check for pkl fitres case
-        alltypes_colnames[g.Training] = g.data_defaults[train_format]['alltypes_colname']
-        print('\nWarning: resetting supplied alltypes_colname_train argument to "{}" based on format of training/pkl data ({})'.\
-              format(alltypes_colnames[g.Training], data_files[g.Training]))
-    
+
     # Setup column names in training data to use for different nclass choices depending on format
     type_colnames = g.data_defaults[train_format]['type_colnames']
     if str(args.nclass) not in type_colnames:
-        print('\nData for {}-way typing not available for {} training-data format'.format(args.nclass, train_format))
+        print('  Data for {}-way typing not available for {} training-data format'.format(args.nclass, train_format))
         exit_code(args.done_file, status=g.FAILURE, start_time=start_time)
 
+    # Check alltypes_colname for training
+    if not args.restore:
+        alltypes_colnames[g.Training] = check_alltypes_colname(g.Training, alltypes_colnames[g.Training],
+                                                               file_formats[ g.Training], data_files[g.Training])
+        
     # Setup classification types (alternates to Ia/Ibc/II/CC typing specified here) and check 
     all_class_values = dict(zip(args.type_labels, args.type_values))
-    if not all([v in g.data_defaults[train_format]['type_values'] for _,v in all_class_values.items()]):
-        print('\nOver-riding supplied classification-label and -value args based on format of training data')
-        all_class_values = dict(zip(g.data_defaults[train_format]['type_labels'],
-                                    g.data_defaults[train_format]['type_values']))
+    all_class_values = check_all_class_values(all_class_values, file_formats[g.Training])
 
-    print('\nUsing initial class-values {}'.format(all_class_values))
-
-    # Check target class
-    if args.target_class_values != g.data_defaults[train_format]['target_class']:
-        args.target_class_values = g.data_defaults[train_format]['target_class']
-        print('\nOver-riding supplied argument for target class values based on format of training data')
-    print('\nInitial target class values: {}'.format(args.target_class_values))
-
+    print('\nInitial target class ({}) values: {}'.format(g.Ia, ' or '.join([str(v) for v in all_class_values[g.Ia]])))
+                                                          
     # Initialize dict for storing astropy tables and feature sets
     alldata = {}
     feature_sets = {}
-                             
-    # Read in training and apply cuts if required by options
+
     SNRcut = 5
     simlist = []
-    withhold_id = ''
     doBazincuts = args.Bazincuts != 'off' and (not args.noBazinparcuts or args.Bazinerrcuts)
+    withhold_id = ''  # used in file_id later
+    # Read in training and apply cuts if required by options
     if not args.restore:
         doBazincuts_train = doBazincuts and args.Bazincuts == 'train'
         # read data and apply cuts 
         data_train, status = read_data_file(g.Training, args.train, SNRcut=SNRcut, zhi=g.zhi[g.Training], 
-                                            zkey=g.feature_names['z'][train_format], format=file_formats[g.Training],
-                                            SNRkey=g.feature_names['snr1'][train_format], 
+                                            zkey=g.generic_feature_names['z'][train_format], format=file_formats[g.Training],
+                                            SNRkey=g.generic_feature_names['snrmx'][train_format], 
                                             doBazincuts=doBazincuts_train)
         if not status:
            exit_code(args.done_file, status=g.FAILURE, start_time=start_time) 
@@ -1339,7 +1363,6 @@ def main(args, start_time=-1):
         data_train, status = create_type_columns(data_train, args.nclass, all_class_values,
                                                  type_colnames=type_colnames,
                                                  alltypes_colname=alltypes_colnames[g.Training],
-                                                 target_class_values=args.target_class_values,
                                                  abort=True, format=train_format)
         if not status:
             print('Aborting...')
@@ -1350,11 +1373,11 @@ def main(args, start_time=-1):
             print('Hold-out test: withholding {} from training sample'.format(args.withhold))
             for withhold in args.withhold:
                 if len(withhold) == 2: # 2-digit argument is a type
-                    typekey = g.feature_names['sim_type'][train_format]
+                    typekey = g.generic_feature_names['sim_type'][train_format]
                     withcut = (data_train[typekey] == int(withhold))
                     data_train = data_train[~withcut]
                 elif len(withhold) == 3: # 3-digit argument is a template
-                    tempkey = g.feature_names['sim_template'][train_format]
+                    tempkey = g.generic_feature_names['sim_template'][train_format]
                     withcut = (data_train[tempkey] == int(withhold))
                     data_train = data_train[~withcut]
                 print('Withholding {} {} from training sample'.format(withinfo, withhold))
@@ -1407,9 +1430,6 @@ def main(args, start_time=-1):
         else:
             print('\nUnknown classifier {}'.format(CLFid))
 
-    # Save all_class_values after successful training/restore using txt format designations
-    #all_class_values_reset = g.desired_class_values
-                     
     # Determine feature importances for tree-based estimators (RF, AdaBoost)
     for n, cl in enumerate(classifiers):
         blurb = '' if len(classifiers) == 1 else 'Stage {}'.format(n)
@@ -1426,11 +1446,11 @@ def main(args, start_time=-1):
                              
     # DATA CLASSIFICATION WITH TRAINED CLASSIFIER
     # -------------------------------------------
-    print('************************')
+    print('\n************************')
     print('*  RUNNING CLASSIFIER  *')
     print('************************')
 
-    # Overwrite input values to match defaults (txt format) for running classifier
+    # Overwrite any input values to match defaults (txt format) for running classifier
     target_class = g.desired_class_values[g.Ia]  # target class values used when creating new columns
     alltypes_colnames[g.Training] = g.data_defaults[g.default_format]['type_colnames'][str(args.nclass)]
 
@@ -1444,13 +1464,15 @@ def main(args, start_time=-1):
         data_files.update(user_files)
         file_formats.update(user_formats)
         file_types.update(user_types)
-        user_alltypes_colnames = args.user_alltypes_colnames if len(args.user_alltypes_colnames) > 0 else ['' for f in user_files]
+        user_alltypes_colnames = args.user_alltypes_colnames if len(args.user_alltypes_colnames) > 0 \
+            else ['' for f in user_files]
         alltypes_colnames.update(dict(zip(user_labels, user_alltypes_colnames)))
 
     # Setup simlist and datalist for running classifier
     print('\nChecking requested data sets for allowed formats and compatibility')
     possible_datalist = [t for t in args.data if g.Spec == t or g.Phot == t or g.Spec_nofp == t]
-    simlist, datalist = get_MLlists(simlist, possible_datalist + user_labels, data_files, alltypes_colnames, file_formats)
+    simlist, datalist = get_MLlists(simlist, possible_datalist + user_labels, data_files,
+                                    alltypes_colnames, file_formats)
 
     # setup unique file-id for saving classifications etc
     file_id = '{}'.format(args.filestr)
@@ -1464,9 +1486,9 @@ def main(args, start_time=-1):
                         
     for dkey  in simlist + datalist:
 
-        alltypes_colname = alltypes_colnames[dkey]
         if dkey in alldata.keys():   # check if data already processed
             continue
+        alltypes_colname = alltypes_colnames[dkey]
         if g.Training not in dkey:           #read in data file and apply cuts
             zkey = g.Data if dkey in datalist else dkey
             format_this = file_formats[dkey]
@@ -1475,8 +1497,8 @@ def main(args, start_time=-1):
                 continue
             # read in data and copy column names to train_format if need be
             data_this, status = read_data_file(dkey, data_files[dkey], SNRcut, zhi=g.zhi[zkey],
-                                       zkey=g.feature_names['z'][format_this], format=format_this,
-                                       SNRkey=g.feature_names['snr1'][format_this])
+                                       zkey=g.generic_feature_names['z'][format_this], format=format_this,
+                                       SNRkey=g.generic_feature_names['snrmx'][format_this])
             if not status:
                 print('  Skipping data file {}'.format(data_files[dkey])) 
         else:
@@ -1496,15 +1518,22 @@ def main(args, start_time=-1):
         else:
             classes_this = None   #default for unlabeled data
             data_this, feature_sets[dkey] = run_RF_classifier(dkey, classifiers, data_this, args.nclass, args.ft)
+
+            # Check alltypes_colname
+            alltypes_colname = check_alltypes_colname(dkey, alltypes_colnames[dkey],
+                                                      file_formats[dkey], data_files[dkey])
+
             if len(alltypes_colname) > 0:                 
+                all_class_values_this = check_all_class_values(all_class_values, file_formats[dkey])
                 #check type column name exits and try to create it if not
-                data_this, status = create_type_columns(data_this, args.nclass, all_class_values, 
+                data_this, status = create_type_columns(data_this, args.nclass, all_class_values_this, 
                                                         type_colnames=type_colnames,
                                                         alltypes_colname=alltypes_colname, 
-                                                        target_class_values=args.target_class_values,
                                                         abort=False, format=format_this)
-                #reset alltypes_colname to unlabeled data if column for labeled data unusable/not found
+                #reset alltypes_colname to unlabeled data if column for labeled data unusable/not found and save
                 alltypes_colname = '' if status==False else g.data_defaults[g.default_format]['type_colnames'][str(args.nclass)]
+                alltypes_colnames[dkey] = alltypes_colname
+
                 if len(alltypes_colname) > 0:  
                     if args.nclass == -2:       #use defaults for now 
                         classes_this = [data_this[type_colnames[str(args.nclass)][0]],
@@ -1539,7 +1568,7 @@ def main(args, start_time=-1):
             if type_colnames['2'] not in data_this.colnames: # check for binary label; use txt format class values
                 data_this, status = create_type_columns(data_this, 2, all_class_values=g.desired_class_values,
                                                         type_colnames=type_colnames,
-                                                        alltypes_colname=alltypes_colname, target_class_values=[target_class],
+                                                        alltypes_colname=alltypes_colname,
                                                         abort=False, format=format_this)
             y_test_ROC = data_this[type_colnames['2']]  # for ROC curve, need binary labels (2-way typing)
             fpr, tpr, roc_thres, AUC = get_ROC(y_test_ROC, data_this[g.RFprobability+str(target_class)])
@@ -1580,7 +1609,7 @@ def main(args, start_time=-1):
         if dkey == g.Test:
             if len(alltypes_colname) > 0:
                 classifications = Fixed_effcy + [g.MaxProb]
-                template_info = get_template_statistics(data_this[g.feature_names['sim_template'][format_this]], 
+                template_info = get_template_statistics(data_this[g.generic_feature_names['sim_template'][format_this]], 
                                                     type_masks, MLtypes, classifications, dkey=dkey)
             else:
                 print('\n  Skipping template statistics due to missing column with labeled types')
@@ -1590,7 +1619,7 @@ def main(args, start_time=-1):
         filename = os.path.splitext(data_files[dkey])[0]
         filename = os.path.join(args.filedir, '_'.join([filename, file_id, MLClasses])+ args.format)
         for k in data_this.colnames:
-            snid = g.feature_names['snid'][format_this]
+            snid = g.generic_feature_names['snid'][format_this]
             if g.RFprobability in k or g._FixedEffClass in k or snid in k or g.MaxProbClass in k or g.TrueClass_id in k or \
                                       'type' in k or (len(alltypes_colname) > 0 and alltypes_colname in k):
                 save_data[k] = data_this[k]
