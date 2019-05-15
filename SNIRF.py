@@ -104,11 +104,11 @@ def parse_args(argv):
                              '-2=2x2 training: 2-stage--2-way classification with I/II -> Ia/Ibc)')
     # Training, validation and data options
     parser.add_argument('--train', default='DES_training_SNR550.txt', help='Filename for training')
-    parser.add_argument('--train_format', choices=[k for k in g.allowed_formats],
-                        default=g.default_format, help='Format of training data')
+    parser.add_argument('--train_format', choices=[f for v in g.allowed_formats.values() for f in v],
+                        default=g.allowed_formats[g.default_format][0], help='Format of training data')
     # parser.add_argument('--train',default='DES_training_fitprob.txt',help='Filename for training')
-    parser.add_argument('--validation', default='', help='Filename for validation; set to null to skip')
-    parser.add_argument('--test', default='DES_test_SNR550.txt', help='Filename for test (skip if set ="")')
+    parser.add_argument('--validation', default="''", help='Filename for validation; set to null to skip')
+    parser.add_argument('--test', default='DES_test_SNR550.txt', help='Filename for test (skip if set to "")')
     parser.add_argument('--data', default=[], nargs='+',
                         help='Classify selected simulated/observed data (default=Phot); '+\
                              'choose from [Test, Spec, Spec_nofp, Phot, ...] '+\
@@ -130,12 +130,12 @@ def parse_args(argv):
     # File saving options
     parser.add_argument('--filedir', default='./',
                         help='Directory name (relative or absolute) for storing output files')
-    parser.add_argument('--save', choices=[g.Ia, g.CC, g.All], default=g.Ia, nargs='+', 
-                        help='Types to save for printing/pickling')
     parser.add_argument('--store', action='store_true', default=False,
                         help='Save trained classifier to pklfile')
     parser.add_argument('--restore', action='store_true', default=False,
                         help='Restore trained classifier from pklfile')
+    parser.add_argument('--use_filenames',  action='store_true', default=False,
+                        help='Use filenames as supplied (no default additions specifying formats, etc. ')
     parser.add_argument('--pklfile', default='trained_RFclassifier',
                         help='Base filename for reading/writing trained classifier (_{format}_{nclass}way.pkl is auto-appended; ' +\
                              'pre+filename also read/written if nclass == -2)')
@@ -144,10 +144,10 @@ def parse_args(argv):
                         help='Format of stored training data')
     parser.add_argument('--train_only', action='store_true', default=False,
                         help='Run training only, save trained classifier to pklfile, and exit')
-    parser.add_argument('--done_file', default='', help='Path to file recording SUCCESS/FAILURE of run') 
+    parser.add_argument('--done_file', default="''", help='Path to file recording SUCCESS/FAILURE of run') 
     # Choose user file-id and format
     parser.add_argument('--filestr',
-                        default='', help='Choose string to append to filenames for output files')
+                        default="''", help='Choose string to append to filenames for output files')
     parser.add_argument('--format', default=txt,
                         help='Format for output of classification data (txt, hdf5, fits)')
     # Repository option for retrieving commit hash
@@ -166,6 +166,8 @@ def parse_args(argv):
                         help='Plot selected simulated data')
     parser.add_argument('--totals', action='store_true', default=False,
                         help='Turn on totals in plots (default if using --data or --user-data)')
+    parser.add_argument('--save', choices=[g.Ia, g.CC, g.All], default=g.Ia, nargs='+', 
+                        help='Types to save for printing pickling in plotting modules')
     parser.add_argument('--user_colors', nargs='+', default=['seagreen', 'springgreen', 'lime'],
                          help='Colors for user-supplied data (3 defaults available)')
     parser.add_argument('--user_markers', nargs='+', default=['<', '>', '8'],
@@ -726,7 +728,7 @@ def get_ML_results(dkey, dataset, classifiers, MLtypes, class_values_list, effcy
             #TBD get rid of -999s in data-columns for stage2 classification
         else:
             prekey = ''
-
+   
         colname = prekey + g.RFprobability  #colname for probabilities in astropy table
         allprobs_colname = colname + str(target_column)
         print('  Statistics for {} Data Set'.format(dkey))
@@ -828,22 +830,22 @@ def get_ML_results(dkey, dataset, classifiers, MLtypes, class_values_list, effcy
                                      t, np.count_nonzero(masks[predict][dkey][CLFid + g.FP + t])))
 
                 #save classification to table
-                dataset[CLFid + g._FixedEffClass + eff_id] = g.nodata
-                dataset[CLFid + g._FixedEffClass_id + eff_id] = '  ' + str(g.nodata)
-                dataset[CLFid + g.TPFP + g._FixedEffClass_id + eff_id] = '    ' + str(g.nodata)
+                pthresh_id = '(PThr={:.3f})'.format(Pthresh)
+                colname = g._FixedEffClass + eff_id + pthresh_id
+                colname_id = g._FixedEffClass_id + eff_id + pthresh_id
+                dataset[CLFid + colname] = g.nodata
+                dataset[CLFid + colname_id] = '  ' + str(g.nodata)
+                if true_classes is not None:
+                    dataset[CLFid + g.TPFP + colname_id] = '    ' + str(g.nodata)
                 for t in MLtypes:
                     if t != g.CC:
-                        dataset[CLFid + g._FixedEffClass + eff_id][masks[predict][dkey][CLFid + t]] = \
-                            all_class_values[t]
+                        dataset[CLFid + colname][masks[predict][dkey][CLFid + t]] = all_class_values[t]
                     else:
-                        dataset[CLFid + g._FixedEffClass + eff_id][masks[predict][dkey][CLFid + t]] = \
-                            g.desired_class_values[g.CC]
-                    dataset[CLFid + g._FixedEffClass_id + eff_id][masks[predict][dkey][CLFid + t]] = CLFid + t
+                        dataset[CLFid + colname][masks[predict][dkey][CLFid + t]] = g.desired_class_values[g.CC]
+                    dataset[CLFid + colname_id][masks[predict][dkey][CLFid + t]] = CLFid + t
                     if true_classes is not None:
-                        dataset[CLFid + g.TPFP + g._FixedEffClass_id + eff_id][masks[predict][dkey][CLFid + g.TP + t]] = \
-                            CLFid + g.TP + t
-                        dataset[CLFid + g.TPFP + g._FixedEffClass_id + eff_id][masks[predict][dkey][CLFid + g.FP + t]] = \
-                            CLFid + g.FP + t
+                        dataset[CLFid + g.TPFP + colname_id][masks[predict][dkey][CLFid + g.TP + t]] = CLFid + g.TP + t
+                        dataset[CLFid + g.TPFP + colname_id][masks[predict][dkey][CLFid + g.FP + t]] = CLFid + g.FP + t
                     
         #Max-prob prediction
         if g.MaxProb not in masks.keys():
@@ -963,7 +965,7 @@ def get_template_statistics(template_data, masks, MLtypes, classifications, dkey
     return template_info
 
 
-def run_cross_validation(data, features, nclass, start_time=-1,
+def run_cross_validation(data, features, nclass, start_time=-1, nc=4, niter=5,
                          type_colnames=g.data_defaults[g.default_format]['type_colnames']):
         
     kvals = []
@@ -983,7 +985,7 @@ def run_cross_validation(data, features, nclass, start_time=-1,
         print('\nCross-validation {}-way classification'.format(str(nway)))
 
         cvclf = RandomForestClassifier(n_estimators=n_estimators, max_features=max_features, \
-                                       min_samples_split=min_samples_split, criterion=criterion, n_jobs=args.nc)
+                                       min_samples_split=min_samples_split, criterion=criterion, n_jobs=nc)
 
         print('\n\nNow try cross-validation methods ...')
 
@@ -1005,7 +1007,7 @@ def run_cross_validation(data, features, nclass, start_time=-1,
         test_step = 0.1
         for ts in np.arange(0.1, 1, test_step):
             print('Fractional Validation Size : {}'.format(ts))
-            ss = ShuffleSplit(len(y_data), n_iter=args.niter, test_size=ts, random_state=42)  # BUG: don't use train_size
+            ss = ShuffleSplit(len(y_data), n_iter=niter, test_size=ts, random_state=42)  # BUG: don't use train_size
             for train_index, test_index in ss:
                 train1as = y_data[train_index] == 0
                 test1as = y_data[test_index] == 0
@@ -1022,7 +1024,7 @@ def run_cross_validation(data, features, nclass, start_time=-1,
     return kvals, avgskf, stdskf, tsvals, avgss, stdss
 
 
-def get_pscores_with_purities(classifiers, pfilename, purities, nclass, Fix_eff, SNRcut=None):
+def get_pscores_with_purities(classifiers, features, pfilename, purities, nclass, Fix_eff, SNRcut=None):
 
     print('\nUsing purities {} for test files'.format(' '.join(purities)))
     pscores = []
@@ -1037,7 +1039,7 @@ def get_pscores_with_purities(classifiers, pfilename, purities, nclass, Fix_eff,
             ptest = ptest[cutptest]
             blurb = '(after SNR cut)'
         print('Size of purity = {} test data {}: {}'.format(purity, blurb, len(ptest)))
-        X_ptest = get_features(args.ft, ptest)
+        X_ptest = get_features(features, ptest)
         if nclass == 2:
             y_ptest = ptest['type']
         elif nclass == 3:
@@ -1173,7 +1175,7 @@ def get_weights(alldata, use_data='', default=1.0):
 def get_MLlists(simlist, possible_datalist, data_files, alltypes_colnames, file_formats):
     datalist = []
     for k in [g.Validation, g.Test] + possible_datalist:
-        if len(data_files[k]) > 0:
+        if len(data_files[k]) > 0 and data_files[k] != "''":
             if file_formats[k] in g.allowed_formats:
                 #if file_formats[k] == train_format:
                     if k in g.simulated_keys:
@@ -1295,11 +1297,12 @@ def main(args, start_time=-1):
     nway = '2x2' if args.nclass == -2 else args.nclass
     print('\n{}-way classification'.format(str(nway)))
     
-    # setup default pklfilename
+    # setup pklfilename
     pkldir, pklname = os.path.split(args.pklfile)
     pkldir = pkldir if len(pkldir) > 0 else args.filedir
-    pklfile = os.path.join(pkldir, '_'.join([pklname, args.pklformat,
-                                             'format', str(args.nclass) + 'way.pkl']))
+    pkl_default = '{}way.pkl'.format('_'.join([args.pklformat, 'format', str(args.nclass)]))
+    pklname = pklname if args.use_filenames else '_'.join([pklname, pkl_default])
+    pklfile = os.path.join(pkldir, pklname)
 
     # Setup dicts for non-user data files and properties
     train_file = args.train if not args.restore else pklfile
@@ -1314,12 +1317,21 @@ def main(args, start_time=-1):
     # Check format of training/pkl data
     print('\nRunning checks on supplied/default arguments')
     train_format = file_formats[g.Training]
+    supplied_format = args.train_format if not args.restore else args.pklformat
+    supplied_format_key = [kk for kk, vv in g.allowed_formats.items() if any([f in supplied_format for f in vv])][0]
     if train_format not in g.allowed_formats:
-        print('  Training/pkl datafile ({}) not in allowed format: {} required'.format(data_files[g.Training], 
+        print('  Training/pkl datafile ({}) may not be not in standard format: {} required'.format(data_files[g.Training], 
               ' or '.join([f for v in g.allowed_formats.values() for f in v])))
-        exit_code(args.done_file, status=g.FAILURE, start_time=start_time)
-    if not args.restore and train_format != args.train_format or args.restore and train_format != args.pklformat:
-        print('  Warning: resetting supplied training/pkl file-format argument to "{}" (format of data file {})'.\
+        if not args.use_filenames:
+            exit_code(args.done_file, status=g.FAILURE, start_time=start_time)
+        else:
+            print('  Proceeding anyway: use_filenames was requested (user specified format assumed)')
+            print('  Assuming training/plk format {}'.format(supplied_format))
+            train_format = supplied_format_key
+            file_formats[g.Training] = train_format #save
+
+    if  supplied_format_key != file_formats[g.Training]:
+        print('  Warning: over-riding supplied training/pkl file-format argument to "{}" (format of data file {})'.\
                   format(train_format, data_files[g.Training]))
 
     # Setup column names in training data to use for different nclass choices depending on format
@@ -1351,7 +1363,7 @@ def main(args, start_time=-1):
     if not args.restore:
         doBazincuts_train = doBazincuts and args.Bazincuts == 'train'
         # read data and apply cuts 
-        data_train, status = read_data_file(g.Training, args.train, SNRcut=SNRcut, zhi=g.zhi[g.Training], 
+        data_train, status = read_data_file(g.Training, data_files[g.Training], SNRcut=SNRcut, zhi=g.zhi[g.Training], 
                                             zkey=g.generic_feature_names['z'][train_format], format=file_formats[g.Training],
                                             SNRkey=g.generic_feature_names['snrmx'][train_format], 
                                             doBazincuts=doBazincuts_train)
@@ -1369,7 +1381,7 @@ def main(args, start_time=-1):
             exit_code(args.done_file, status=g.FAILURE, start_time=start_time)
 
         # check for withholding and make cuts on training data
-        if len(args.withhold) > 0 and not args.skip_train:
+        if len(args.withhold) > 0 and not args.restore:
             print('Hold-out test: withholding {} from training sample'.format(args.withhold))
             for withhold in args.withhold:
                 if len(withhold) == 2: # 2-digit argument is a type
@@ -1420,8 +1432,11 @@ def main(args, start_time=-1):
             classifiers, data_train, training_class_values, feature_sets[g.Training] = _result
             if args.store:
                 # setup pklfilename including actual file type of training data
-                pklfile = os.path.join(pkldir, '_'.join([pklname, file_types[g.Training], 
-                                                   'format', str(args.nclass) + 'way.pkl']))
+                pkl_default = '{}way.pkl'.format('_'.join([file_types[g.Training],
+                                                           'format', str(args.nclass)]))
+                pklname = pklname if args.use_filenames else '_'.join([pklname, pkl_default])
+                pklfile = os.path.join(pkldir, pklname) 
+
                 if args.nclass == -2:
                     joblib.dump(classifiers[0], 'pre' + pklfile)
                     print('\nSaving pre-classifier to file pre{}'.format(pklfile))
@@ -1616,8 +1631,9 @@ def main(args, start_time=-1):
 
         #write out selected data to astropy table
         save_data = Table()
-        filename = os.path.splitext(data_files[dkey])[0]
-        filename = os.path.join(args.filedir, '_'.join([filename, file_id, MLClasses])+ args.format)
+        _, basename = os.path.split(data_files[dkey])
+        filename = os.path.splitext(basename)[0]
+        filename = os.path.join(args.filedir, '_'.join([filename, file_id, MLClasses])+ args.format) # output format
         for k in data_this.colnames:
             snid = g.generic_feature_names['snid'][format_this]
             if g.RFprobability in k or g._FixedEffClass in k or snid in k or g.MaxProbClass in k or g.TrueClass_id in k or \
@@ -1642,13 +1658,13 @@ def main(args, start_time=-1):
             data_all = vstack([ttrain, ttest])
 
         kvals, avgskf, stdskf, tsvals, avgss, stdss = run_cross_validation(data_all, 
-                                                          args.ft, args.nclass, type_colnames=type_colnames,
-                                                          start_time=start_time)
+                                                          args.ft, args.nclass, type_colnames=type_colnames, nc=args.nc,
+                                                          niter=args.niter, start_time=start_time)
         performance[g.Cross_Validation] = [kvals, avgskf, stdskf, tsvals, avgss, stdss]
         
     if args.pc:  #TBD
         pfilename = 'DES_validation_fitprob_purity='
-        pscores = get_pscores_with_purities(classifiers, pfilename, args.purities, args.nclass, Fix_eff, SNRcut=SNRcut)
+        pscores = get_pscores_with_purities(classifiers, args.ft, pfilename, args.purities, args.nclass, Fix_eff, SNRcut=SNRcut)
         performance[g.Purity_Scores] = [args.purities, pscores]
         
     if len(args.plots)==0 or args.plots[0] == '':
