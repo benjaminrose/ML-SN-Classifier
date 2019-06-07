@@ -39,8 +39,6 @@ from ML_plots import make_plots
 # allSNtypes   -list of all possible true SN types  (eg [Ia, CC, Ibc, II])
 # MLtypes      -list of types used by 2-way, 3-way, .. ML classification (eg [Ia, CC], [Ia, Ibc, II] ..)
 # CLFtypes     -list of types predicted by ML classifier (CLF) (eg [RFIa, RFCC], ... )
-# TPFPtypes    -True positive and false positive types  (TP, FP)
-# allTPFPtypes -list of all combinations of allSNtypes and TPFPtypes (eg [TPIa, FPIa, TPCC, FPCC,..)
 # savetypes    -list of types for special printing, pickling etc
 # trueplottypes -list of true types to be plotted (default = MLtypes + [Total])
 # CLFplottypes -list of CLF types to be plotted (default = CLFtypes + [CLFTotal])
@@ -780,7 +778,8 @@ def get_ML_results(dkey, dataset, classifiers, MLtypes, class_values_list, effcy
                 masks[predict][dkey] = {}
             # determine P_threshold value to use
             if P_threshold is None  or len(P_threshold) ==0:
-                if true_classes is not None and prekey + g.P_Threshold + eff_id in performance.keys(): #default to Pthresh_eff if available
+                #default to Pthresh_eff if available
+                if true_classes is not None and prekey + g.P_Threshold + eff_id in performance.keys():
                     Pthresh = performance[prekey + g.P_Threshold + eff_id]
                     if dkey != g.Test:
                         print('\n    Reverting to fixed-efficiency value {:.3f} based on true types for {}'\
@@ -791,11 +790,12 @@ def get_ML_results(dkey, dataset, classifiers, MLtypes, class_values_list, effcy
             else: 
                 Pthresh = P_threshold[j]   #supplied value from Test data
       
-            if g.Ia in list(all_class_values.keys()):  
+
+            if target_type in list(all_class_values.keys()):  
                 if len(classifiers) > 1 and n==0: # stage 0 distinguishes type II
                     masks[predict][dkey][CLFid + g.II] = dataset[allprobs_colname] < Pthresh
                 else:
-                    masks[predict][dkey][CLFid + g.Ia] = dataset[allprobs_colname] >= Pthresh
+                    masks[predict][dkey][CLFid + target_type] = dataset[allprobs_colname] >= Pthresh
                     if nclass == 3:
                         masks[predict][dkey][CLFid + g.II] = (dataset[allprobs_colname] < Pthresh) & \
                                                        (dataset[colname+'2'] > dataset[colname+'1'])
@@ -811,41 +811,20 @@ def get_ML_results(dkey, dataset, classifiers, MLtypes, class_values_list, effcy
                 if g.CC in MLtypes:
                     masks[predict][dkey][CLFid + g.CC] = ~masks[predict][dkey][CLFid + g.Ia]        
 
-                # assemble TP/FP
+                # assemble TF classifications (TP, FP, TN, FN)
                 if true_classes is not None:
-                    for t in MLtypes:
-                        masks[predict][dkey][CLFid + g.TP + t] = masks[predict][dkey][CLFid + t] & masks[g.TrueType][dkey][t]
-                        masks[predict][dkey][CLFid + g.FP + t] = masks[predict][dkey][CLFid + t] & ~masks[g.TrueType][dkey][t]
-
+                    masks[predict][dkey] = get_TF_masks(CLFid, MLtypes, target_type, masks[predict][dkey], masks[g.TrueType][dkey])
+                
                 # print summary
-                print('\n    Predictions using fixed-efficiency classification with P_thresh {:.3f}:'\
-                      .format(float(Pthresh)))
-                for t in MLtypes:
-                    print('\n      Predicted number of {}-Data {} = {}'.format(dkey, t,
-                               np.count_nonzero(masks[predict][dkey][CLFid + t])))
-                    if true_classes is not None:
-                        print('        Correct (true positive) number of {}-Data {} = {}'.format(dkey, 
-                                     t, np.count_nonzero(masks[predict][dkey][CLFid + g.TP + t])))
-                        print('        Incorrect (false positive) number of {}-Data {} = {}'.format(dkey, 
-                                     t, np.count_nonzero(masks[predict][dkey][CLFid + g.FP + t])))
+                heading = 'fixed-efficiency classification with P_thresh {:.3f}'.format(float(Pthresh))
+                get_prediction_summary(CLFid, MLtypes, masks[predict][dkey], dkey, target_type, true_classes, heading)
 
                 #save classification to table
                 pthresh_id = '(PThr={:.3f})'.format(Pthresh)
-                colname = g._FixedEffClass + eff_id + pthresh_id
-                colname_id = g._FixedEffClass_id + eff_id + pthresh_id
-                dataset[CLFid + colname] = g.nodata
-                dataset[CLFid + colname_id] = '  ' + str(g.nodata)
-                if true_classes is not None:
-                    dataset[CLFid + g.TPFP + colname_id] = '    ' + str(g.nodata)
-                for t in MLtypes:
-                    if t != g.CC:
-                        dataset[CLFid + colname][masks[predict][dkey][CLFid + t]] = all_class_values[t]
-                    else:
-                        dataset[CLFid + colname][masks[predict][dkey][CLFid + t]] = g.desired_class_values[g.CC]
-                    dataset[CLFid + colname_id][masks[predict][dkey][CLFid + t]] = CLFid + t
-                    if true_classes is not None:
-                        dataset[CLFid + g.TPFP + colname_id][masks[predict][dkey][CLFid + g.TP + t]] = CLFid + g.TP + t
-                        dataset[CLFid + g.TPFP + colname_id][masks[predict][dkey][CLFid + g.FP + t]] = CLFid + g.FP + t
+                effcolname = g._FixedEffClass + eff_id + pthresh_id
+                #effcolname_id = g._FixedEffClass + eff_id + pthresh_id + g._id
+                dataset = save_predictions(CLFid, MLtypes, dataset, effcolname, masks[predict][dkey], 
+                                           all_class_values, true_classes, target_type)
                     
         #Max-prob prediction
         if g.MaxProb not in masks.keys():
@@ -866,31 +845,16 @@ def get_ML_results(dkey, dataset, classifiers, MLtypes, class_values_list, effcy
                 masks[g.MaxProb][dkey][CLFid + g.CC] = ~masks[g.MaxProb][dkey][CLFid + g.Ia]
 
             if true_classes is not None:
-                for t in MLtypes:
-                    masks[g.MaxProb][dkey][CLFid + g.TP + t] = masks[g.MaxProb][dkey][CLFid + t] & masks[g.TrueType][dkey][t]
-                    masks[g.MaxProb][dkey][CLFid + g.FP + t] = masks[g.MaxProb][dkey][CLFid + t] & ~masks[g.TrueType][dkey][t]
+                masks[g.MaxProb][dkey] = get_TF_masks(CLFid, MLtypes, target_type, masks[g.MaxProb][dkey], masks[g.TrueType][dkey])
 
-            print('\n  Predictions using Maximum-Probability Classification:')
-            for t in MLtypes:
-                print('\n    Predicted number of {}-Data {} using max prob = {}'.format(dkey,
-                             t, np.count_nonzero(masks[g.MaxProb][dkey][CLFid + t])))
-                if true_classes is not None:
-                    print('      Correct (true positive) number of {}-Data {} = {}'.format(dkey, 
-                                 t, np.count_nonzero(masks[g.MaxProb][dkey][CLFid + g.TP + t])))
-                    print('      Incorrect (false positive) number of {}-Data {} = {}'.format(dkey, 
-                                 t, np.count_nonzero(masks[g.MaxProb][dkey][CLFid + g.FP + t])))
+            # print summary
+            heading = 'Maximum-Probability Classification'
+            get_prediction_summary(CLFid, MLtypes, masks[g.MaxProb][dkey], dkey, target_type, true_classes, heading)
 
             #save classification to table
-            dataset[CLFid + g._MaxProbClass_id] = '  ' + str(g.nodata)
-            dataset[CLFid + g.TPFP + g._MaxProbClass_id] = '    ' + str(g.nodata)
-            for t in MLtypes:
-                dataset[CLFid + g._MaxProbClass_id][masks[g.MaxProb][dkey][CLFid + t]] = CLFid + t
-                if true_classes is not None:
-                    dataset[CLFid + g.TPFP + g._MaxProbClass_id][masks[g.MaxProb][dkey][CLFid + g.TP + t]] = \
-                        CLFid + g.TP + t
-                    dataset[CLFid + g.TPFP + g._MaxProbClass_id][masks[g.MaxProb][dkey][CLFid + g.FP + t]] = \
-                        CLFid + g.FP + t
-
+            dataset = save_predictions(CLFid, MLtypes, dataset, g._MaxProbClass, masks[g.MaxProb][dkey], 
+                                       all_class_values, true_classes, target_type)
+            
             if true_classes is not None:
                 Eff, Pur, Rem = g.EffPur(masks[g.TrueType][dkey][g.Ia], maxprobclass == target_class)
                 performance[prekey + g.Efficiency_MaxProb], performance[prekey + g.Purity_MaxProb],\
@@ -905,6 +869,56 @@ def get_ML_results(dkey, dataset, classifiers, MLtypes, class_values_list, effcy
 
     return performance, masks
 
+def get_TF_masks(CLFid, MLtypes, target_type, masks_predict, masks_true):
+
+    for t in MLtypes:
+        if t == target_type:
+            masks_predict[CLFid + t + g.TP] = masks_predict[CLFid + t] & masks_true[t]
+            masks_predict[CLFid + t + g.FP] = masks_predict[CLFid + t] & ~masks_true[t]
+        else:
+            masks_predict[CLFid + t + g.TN] = masks_predict[CLFid + t] & masks_true[t]
+            masks_predict[CLFid + t + g.FN] = masks_predict[CLFid + t] & ~masks_true[t]
+    
+    return masks_predict
+
+def get_prediction_summary(CLFid, MLtypes, masks, dkey, target_type, true_classes, heading):
+    print('\n    Predictions using {}:'.format(heading))
+    for t in MLtypes:
+        print('\n      Predicted number of {}-Data {} = {}'.format(dkey, t,
+                  np.count_nonzero(masks[CLFid + t])))
+        if true_classes is not None:
+            true_id = g.TP if t == target_type else g.TN
+            false_id = g.FP if t == target_type else g.FN
+            print('        Correct (true) number of {}-Data {} = {}'.format(dkey, 
+                      t, np.count_nonzero(masks[CLFid + t + true_id])))
+            print('        Incorrect (false) number of {}-Data {} = {}'.format(dkey, 
+                      t, np.count_nonzero(masks[CLFid + t + false_id])))
+
+    return
+
+def save_predictions(CLFid, MLtypes, dataset, newcolname, masks, all_class_values, 
+                     true_classes, target_type):
+
+    newcolname_id = newcolname + g._id
+    dataset[CLFid + newcolname] = g.nodata  #initial values
+    dataset[CLFid + newcolname_id] = '  ' + str(g.nodata) #initial values
+    if true_classes is not None:
+        dataset[CLFid + g.TF + newcolname_id] = '    ' + str(g.nodata)
+    for t in MLtypes:
+        if t != g.CC:
+            dataset[CLFid + newcolname][masks[CLFid + t]] = all_class_values[t]
+        else:
+            dataset[CLFid + newcolname][masks[CLFid + t]] = g.desired_class_values[g.CC]
+        dataset[CLFid + newcolname_id][masks[CLFid + t]] = CLFid + t
+        if true_classes is not None:
+            if t == target_type:
+                dataset[CLFid + g.TF + newcolname_id][masks[CLFid + t + g.TP]] = CLFid + t + g.TP
+                dataset[CLFid + g.TF + newcolname_id][masks[CLFid + t + g.FP]] = CLFid + t + g.FP
+            else:
+                dataset[CLFid + g.TF + newcolname_id][masks[CLFid + t + g.TN]] = CLFid + t + g.TN
+                dataset[CLFid + g.TF + newcolname_id][masks[CLFid + t + g.FN]] = CLFid + t + g.FN
+
+    return dataset
 
 def get_template_statistics(template_data, masks, MLtypes, classifications, dkey=g.Test, CLFid=g.RF):
 
@@ -1267,7 +1281,7 @@ def exit_code(filename, status=g.SUCCESS, msg='', start_time=-1):
     if start_time > 0:
         msg = "\nEnd-to-end runtime = {0:.3f} minutes\n"
         print(msg.format((time() - start_time)/60))
-    if len(filename) > 0:
+    if len(filename) > 0 and filename != "''":
         with open(filename, 'w') as fh:
             fh.write(' {}'.format(g.SUCCESS if status==g.SUCCESS else g.FAILURE))
             print('Wrote {}'.format(filename))
@@ -1490,7 +1504,7 @@ def main(args, start_time=-1):
                                     alltypes_colnames, file_formats)
 
     # setup unique file-id for saving classifications etc
-    file_id = '{}'.format(args.filestr)
+    file_id = '{}'.format(args.filestr) if args.filestr != "''" else ''
     ml_id = '_'.join([str(len(args.ft)) + 'features', str(args.nclass) + 'way-typing', withhold_id])
     file_id = re.sub('_+', '_', '_'.join([ml_id, file_id, 'v'+version]))
 

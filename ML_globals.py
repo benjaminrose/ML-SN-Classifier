@@ -23,22 +23,26 @@ SNtypes = [Ia, CC]
 CCtypes = [Ibc, II]
 allSNtypes = SNtypes + CCtypes
 
-# true and false positives
-TP = 'TP'
-FP = 'FP'
-TPFP = TP + FP
-TPFPtypes = [TP, FP]
-allTPFPtypes = [p + t for p in TPFPtypes for t in allSNtypes]
-TPIa = TP + Ia
-FPIa = FP + Ia
-RFTPIa = RF + TP + Ia
-RFFPIa = RF + FP + Ia
-RFTPCC = RF + TP + CC
-RFFPCC = RF + FP + CC
-RFTPIbc = RF + TP + Ibc
-RFFPIbc = RF + FP + Ibc
-RFTPII = RF + TP + II
-RFFPII = RF + FP + II
+# true and false
+T = 'T'
+F = 'F'
+P = 'P'
+N = 'N'
+TP = T + P
+FP = F + P
+TN = T + N
+FN = F + N
+TF = T + F
+TFtypes = [TP, FP, TN, FN]
+RFIaTP = RFIa + TP
+RFIaFP = RFIa + FP
+RFCCTN = RFCC + TN
+RFCCFN = RFCC + FN
+RFIbcTN = RFIbc + TN
+RFIbcFN = RFIbc + FN
+RFIITN = RFII + TN
+RFIIFN = RFII + FN
+allTFtypes = [RFIaTP, RFIaFP, RFCCTN, RFCCFN, RFIbcTN, RFIbcFN, RFIITN, RFIIFN]
 
 # data samples
 Data = 'Data'
@@ -65,10 +69,8 @@ _MaxProb = '_' + MaxProb
 _id = '_id'
 TrueClass_id = 'TrueClass' + _id
 _FixedEffClass = '_FixedEffClass'
-_FixedEffClass_id = _FixedEffClass + _id
 MaxProbClass = 'MaxProbClass'
 _MaxProbClass = '_MaxProbClass'
-_MaxProbClass_id = _MaxProbClass + _id
 
 # keywords/flags
 Total = 'Total'

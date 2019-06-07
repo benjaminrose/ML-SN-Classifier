@@ -134,8 +134,8 @@ color = {g.Ia: 'royalblue', g.CC: 'red', g.Ibc: 'limegreen', g.II: 'red',
          g.Data: {g.Training: 'magenta', g.Test: 'black', g.Validation: 'yellow', g.Spec: 'purple', g.Spec_nofp: 'cyan', g.Phot: 'indianred',
                 altTest: 'dimgrey', altSpec: 'rebeccapurple', altSpec_nofp: 'teal', altPhot: 'lightcoral'},
          g.Total: 'black', g.RFIa: 'blue', g.RFCC: 'orangered', g.RFIbc: 'green', g.RFII: 'orangered', g.RFTotal: 'black',
-         contour: 'black', g.RFTPIa: 'royalblue', g.RFFPIa: 'deeppink', g.RFTPCC: 'red', g.RFFPCC: 'orange', g.RFTPII: 'red',
-         g.RFFPII: 'orange', g.RFTPIbc: 'limegreen', g.RFFPIbc: 'magenta', 
+         contour: 'black', g.RFIaTP: 'royalblue', g.RFIaFP: 'deeppink', g.RFCCTN: 'red', g.RFCCFN: 'orange', g.RFIITN: 'red',
+         g.RFIIFN: 'orange', g.RFIbcTN: 'limegreen', g.RFIbcFN: 'magenta', 
          altIa: 'lightblue', altCC: 'darkorange', altII: 'darkorange', altIbc: 'yellowgreen', altTotal: 'dimgrey',
          altRFIa: 'lightskyblue', altRFCC: 'peru', altRFII: 'peru', altRFIbc: 'y'}
 fill = {g.Ia: 'stepfilled', g.CC: 'step', g.Ibc: 'step', g.II: 'step', 
@@ -158,35 +158,25 @@ plotlabels = {g.Ia: g.SN + g.Ia, g.CC: g.SN + g.CC, g.Ibc: g.SN + g.Ibc, g.II: g
 sizes = {Title: 18, Large: 16, Small: 12, Scatter: 10, Ticks: 12}
 
 CLFlbls = {g.RF: ' (RF)'}
-TPlbl = 'TP '
-FPlbl = 'FP '
+TFlabels = {g.TP:'TP ', g.FP:'FP ', g.TN:'TN ', g.FN:'FN '} 
 
 # poplulate dicts with extra keys for the classifier types (RF for now)
 for key in CLFlbls.keys():
     CLFlbl = CLFlbls[key]
     for t in g.allSNtypes:
         plotlabels[key + t] = g.SN + t + CLFlbl
-        plotlabels[key + g.TP + t] = TPlbl + g.SN + t + CLFlbl
-        plotlabels[key + g.FP + t] = FPlbl + g.SN + t + CLFlbl
-        markers[key + t] = markers[t]
-        markers[key + g.TP + t] = markers[t]
-        markers[key + g.FP + t] = markers[t]
-        lw[key + t] = lw[t]
-        lw[key + g.TP + t] = lw[t]
-        lw[key + g.FP + t] = lw[t]
-        lw[alt + key + t] = lw[t]
-        lw[alt + key + g.TP + t] = lw[t]
-        lw[alt + key + g.FP + t] = lw[t]
-        alpha[key + t] = alpha[t]
-        alpha[key + g.TP + t] = alpha[t]
-        alpha[key + g.FP + t] = alpha[t]
-        fill[key + t] = fill[t]
-        fill[key + g.TP + t] = fill[t]
-        fill[key + g.FP + t] = fill[t]
-        fill[alt + key + t] = fill[t]
-        fill[alt + key + g.TP + t] = fill[t]
-        fill[alt + key + g.FP + t] = fill[t]
-        
+        for tf in g.TFtypes:
+            if (g.Ia in t and g.P in tf) or (g.Ia not in t and g.N in tf):
+                plotlabels[key + t + tf] = TFlabels[tf] + g.SN + t + CLFlbl
+        for k in [''] + g.TFtypes:
+            if (g.Ia in t and g.P in k) or (g.Ia not in t and g.N in k) or k == '':
+                markers[key + t + k] = markers[t]
+                lw[key + t + k] = lw[t]
+                lw[alt + key + t + k] = lw[t]
+                alpha[key + t + k] = alpha[t]
+                fill[key + t + k] = fill[t]
+                fill[alt + key + t + k] = fill[t]
+
     plotlabels[key + g.Total] = g.Total
     alpha[key + g.Total] = alpha[g.Total]
     fill[key + g.Total] = fill[g.Total]
@@ -521,7 +511,7 @@ def plot_types(f, types, xvar, alldata, plotlist=[''], masks={}, weights=True, t
 
     if len(bytypelist) > 0:  #plot by type
         for dat in bytypelist:
-            datdict = alldata[dat] if alldata.has_key(dat) else {}
+            datdict = alldata[dat] if dat in list(alldata.keys()) else {}
             if len(yvar) > 0 and weights:
                 weights = False
                 print ('    Ignoring weights for 2-d plot')
@@ -1137,19 +1127,21 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
 
     # setup list of types needed for making plots; include CLF-predicted types
     CLFtypes = []
-    TPFPtypes = []
+    TFtypes = []
     for CLFid in CLFlbls.keys():
         for t in MLtypes:
             CLFtypes.append(CLFid + t)
-            for p in g.TPFPtypes:
-                TPFPtypes.append(CLFid + p + t)
+            for p in g.TFtypes:
+                if CLFid + t + p in g.allTFtypes:
+                    TFtypes.append(CLFid + t + p)
+
 
     # include totals if requested, or if data is included
     totals = totals or len(plotlist) > 1
     MLtypes_plot = [t for t in MLtypes] + [g.Total] if totals else [t for t in MLtypes]
     CLFtypes_plot = [t for t in CLFtypes] + [g.Total] if totals else [t for t in CLFtypes]
-    TPFPtypes_plot = [t for t in TPFPtypes] + [g.Total] if totals else [t for t in TPFPtypes]
-    #alltypes = [MLtypes, CLFtypes, TPFPtypes]  # all possible variants of typing
+    TFtypes_plot = [t for t in TFtypes] + [g.Total] if totals else [t for t in TFtypes]
+    #alltypes = [MLtypes, CLFtypes, TFtypes]  # all possible variants of typing
 
     # setup combinations of simulations and data for plotting
     if len(plotlist) > 1 and len(plotlist[1]) > 0:   # data is present 
@@ -1174,7 +1166,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             classification_labels[cl_id] = 'True Types'
         else:
             classification_labels[cl_id] = re.sub('Eff_', 'Fixed-Eff. Classification $e=$ ', cl_id)
-    
+
     # pages
     npage = 1
     page_total = 0
@@ -1243,7 +1235,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                             types = MLtypes
                             clabel = g.SN + g.Ia
                         else:
-                            types = TPFPtypes if g.TrueType in type_masks.keys() else CLFtypes
+                            types = TFtypes if dkey in type_masks[g.TrueType].keys() else CLFtypes
                             clabel = ''  # suppress contours for CLF types
                             # code to add contours as follows
                             #clabel = '{} {}'.format(CLFid, g.SN + g.Ia)
@@ -1251,11 +1243,12 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                         print('  Plotting x1-c scatter for {} Data ({})'.format(dkey, classification_labels[mkey]))
                         nplot = plot_scatter_bytype(fig, dkey, alldata, types, tmask, nplot=nplot, xvar='x1', yvar='c',
                                                     lgnd_title=classification_labels[mkey], contour_label=clabel)
-                        fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage)
+                        fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, 
+                                                               plotsperpage=plotsperpage)
                         if closed:
                             page_total += 1
                     else:
-                        print('  Not found', dkey, 'for', mkey)
+                        print('  Skipping scatter plots for {}: not available for {} data'.format(mkey, dkey))
 
             if not closed:
                 subpage = close_page(fig, multiPdf, npage, subpage)
@@ -1269,7 +1262,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             subpage = 1
             nplot = 0
             fig = plt.figure(figsize=(figx, figy))
-            # loop over pairs of simulation and data samples (if any); plot CLFtypes and TPFPtypes
+            # loop over pairs of simulation and data samples (if any); plot CLFtypes and TFtypes
             for pair in pairs:
                 for mkey, tmask in type_masks.items():
                     type_data = CLFid + g.Ia                                 # always available 
@@ -1304,7 +1297,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                         if g.TrueType in mkey:
                             types = [g.Ia]
                         else:
-                            types = [g.RFTPIa, g.RFFPIa] if dkey in type_masks[g.TrueType].keys() else [g.RFIa]
+                            types = [g.RFIaTP, g.RFIaFP] if dkey in type_masks[g.TrueType].keys() else [g.RFIa]
                         print('  Plotting HD for {} Data ({}) using {} type(s)'.format(dkey, classification_labels[mkey], ' + '.join(types)))
                         nplot = plot_HD(fig, dkey, alldata, types, tmask, nplot=nplot, lgnd_title=classification_labels[mkey])
                         fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage)
@@ -1356,7 +1349,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                         if g.TrueType in mkey:
                             types = MLtypes
                         else:
-                            types = TPFPtypes if g.TrueType in type_masks.keys() else CLFtypes
+                            types = TFtypes if dkey in type_masks[g.TrueType].keys() else CLFtypes
                         print('  Plotting error scatter for {} Data ({})'.format(dkey, classification_labels[mkey]))
                         for xvar, yvar, xmin, xmax, ymin, ymax in zip(xvars, yvars, xmins, xmaxs, ymins, ymaxs):
                             nplot = plot_scatter_bytype(fig, dkey, alldata, types, tmask, nplot=nplot, xvar=xvar, yvar=yvar,
@@ -1367,7 +1360,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                         if closed:
                             page_total += 1
                     else:
-                        print('  Not found', dkey, 'for', mkey)
+                        print('  Skipping scatter plots for {}: not available for {} data'.format(mkey, dkey))
 
             if not closed:
                 subpage = close_page(fig, multiPdf, npage, subpage)
@@ -1460,7 +1453,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                             types = MLtypes
                             clabel = g.SN + g.Ia
                         else:
-                            types = TPFPtypes if g.TrueType in type_masks.keys() else CLFtypes
+                            types = TFtypes if dkey in type_masks[g.TrueType].keys() else CLFtypes
                             clabel = ''
                         print('  Plotting color-difference scatter for {} Data ({})'.format(dkey, classification_labels[mkey]))
                         for (c1, c2) in indexes:
@@ -1475,7 +1468,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                             page_total += 1
 
                     else:
-                        print('  Not found', dkey, 'for', mkey)
+                        print('  Skipping scatter plots for {}: not available for {} data'.format(mkey, dkey))
 
             if not closed:
                 subpage = close_page(fig, multiPdf, npage, subpage)
