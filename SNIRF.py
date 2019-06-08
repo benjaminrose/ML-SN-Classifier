@@ -932,6 +932,10 @@ def get_template_statistics(template_data, masks, MLtypes, classifications, dkey
         else:
             print('\n    Efficiency = {}'.format(cl))
             cl_id = g.Eff_.format(float(cl))
+        # check for available classifications
+        if CLFid + g.Ia not in masks[cl_id][dkey].keys():
+            print('    {} classification not available; skipping template statistics'.format(cl_id))
+            continue
         template_info[cl_id] = {}
         predict = masks[cl_id][dkey]
         true = masks[g.TrueType][dkey]
@@ -1636,12 +1640,12 @@ def main(args, start_time=-1):
                    
         # TEMPLATE STATISTICS for Test Data (need simulated data)
         if dkey == g.Test:
-            if len(alltypes_colname) > 0:
+            if len(alltypes_colname) > 0 and g.generic_feature_names['sim_template'][format_this] in data_this.colnames:
                 classifications = Fixed_effcy + [g.MaxProb]
                 template_info = get_template_statistics(data_this[g.generic_feature_names['sim_template'][format_this]], 
                                                     type_masks, MLtypes, classifications, dkey=dkey)
             else:
-                print('\n  Skipping template statistics due to missing column with labeled types')
+                print('\n  Skipping template statistics: no labels or no template information available')
 
         #write out selected data to astropy table
         save_data = Table()
