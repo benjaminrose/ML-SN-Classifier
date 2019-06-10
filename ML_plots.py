@@ -1265,13 +1265,13 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             # loop over pairs of simulation and data samples (if any); plot CLFtypes and TFtypes
             for pair in pairs:
                 for mkey, tmask in type_masks.items():
-                    type_data = CLFid + g.Ia                                 # always available 
+                    type_data = CLFid + g.Ia                                 # always available (except for TrueType)  
                     if g.TrueType in mkey:
                         types_this = [MLtypes_plot]                          # plot true types for sim
-                        if len(pair[1]) > 0 and pair[1][0] in tmask.keys():  # check if true_types available in data
-                            type_data = g.Ia
+                        if len(pair[1]) > 0:
+                            type_data = g.Ia if pair[1][0] in tmask.keys() else g.Total  # if true_types available in data 
                     else:
-                        types_this = [CLFtypes_plot, [CLFid + g.TPIa, CLFid + g.FPIa]] # TPFP always available in sim
+                        types_this = [CLFtypes_plot, [CLFid + g.Ia + g.TP, CLFid + g.Ia + g.FP]] # TPFP always available in sim
                     for types in types_this:
                         print('  Plotting {} Data using ({} with types {}) + ({})'.format(' + '.join([c for sublist in pair for c in sublist]),
                                                                              classification_labels[mkey],
