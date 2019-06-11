@@ -1449,11 +1449,10 @@ def main(args, start_time=-1):
                                          ) 
             classifiers, data_train, training_class_values, feature_sets[g.Training] = _result
             if args.store:
-                # setup pklfilename including actual file type of training data
-                pkl_default = '{}way.pkl'.format('_'.join([file_types[g.Training],
-                                                           'format', str(args.nclass)]))
-                pklname = pklname if args.use_filenames else '_'.join([pklname, pkl_default])
-                pklfile = os.path.join(pkldir, pklname) 
+                # setup pklfilename using file type of training data for autofil format 
+                if not args.use_filenames: 
+                    pklname = re.sub(args.pklformat, file_types[g.Training], pklname)
+                    pklfile = os.path.join(pkldir, pklname) 
 
                 if args.nclass == -2:
                     joblib.dump(classifiers[0], 'pre' + pklfile)

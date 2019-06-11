@@ -36,6 +36,6 @@ python ./SNIRF.py --ft FITPROB x1 c PKMJDERR --train FITOPT000.FITRES.gz --nclas
 
 python ./SNIRF.py --ft FITPROB x1 c x1ERR cERR PKMJDERR --train FITOPT000.FITRES.gz --nclass 2 --eff 0.85 --filedir evk --test '' --user_data TestForEve.csv
 
-python ./SNIRF.py --ft FITPROB x1 c x1ERR cERR PKMJDERR --train FITOPT000.FITRES.gz --nclass 2 --eff 0.85 --filedir evk --test '' --user_data TestForEve.csv --user_alltypes_colname spec_eval'' --user_data
+python ./SNIRF.py --ft FITPROB x1 c x1ERR cERR PKMJDERR --train FITOPT000.FITRES.gz --nclass 2 --eff 0.85 --filedir evk --test '' --user_data TestForEve.csv --user_alltypes_colname spec_eval
 
-python ./SNIRF.py --ft FITPROB x1 c x1ERR cERR PKMJDERR --train FITOPT000.FITRES.gz --nclass 2 --eff 0.85 --filedir evk --test TestForEve.csv alltypes_colname_test spec_eval
+python ./SNIRF.py --ft FITPROB x1 c x1ERR cERR PKMJDERR --train FITOPT000.FITRES.gz --nclass 2 --eff 0.85 --filedir evk --test TestForEve.csv --alltypes_colname_test spec_eval
