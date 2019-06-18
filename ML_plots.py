@@ -196,6 +196,9 @@ lw[alt + g.Ia] = 2  # overwrite
 plotdict = {'color': color, 'fill': fill, 'lw': lw, 'alpha': alpha, 'labels': plotlabels, 'markers': markers,
             'levels': ctrlevels, 'sizes': sizes}
 
+Default_markers=['o','v','s','d','H','^','D','h','<','>','.']
+Default_colors=['blue','r','m','g','navy','y','purple','gray','c','orange','violet',
+                'coral','gold','orchid','maroon','tomato','sienna','chartreuse','firebrick','SteelBlue']
 
 def bin_data(data, Nbins=None):
     Ndata = np.asarray([])
@@ -587,21 +590,24 @@ def get_EffPur(data, cuts, colname='fit_pr', target_class=0, alltypes_colname='t
         
     return C_Eff, C_Pur
 
-def plot_probabilities(fig, dkey, alldata, MLtypes, type_masks, performance, target_class=0, colname='fit_pr', debug=False,
-                       alltypes_colname='type3', p_binwidth =0.05, p_min=-0.1, p_max=1.05, plot_offset=plot_offset6): 
+def plot_probabilities(fig, dkey, alldata, MLtypes, type_masks, performance, target_class=0, 
+                       colname='fit_pr', debug=False, alltypes_colname='type3', y_lo=.75,
+                       p_binwidth =0.05, p_min=-0.1, p_max=1.05, plot_offset=plot_offset6): 
     
     p_bins = np.arange(p_min, p_max, p_binwidth)
     RFprobability = g.RFprobability + str(target_class)
 
     f = fig.add_subplot(plot_offset + 1)
-    plot_types(f, MLtypes, RFprobability, alldata, plotlist=[[dkey], []], masks=type_masks, xlabel='Random Forest SNIa Probability', ylabel='Number',
+    plot_types(f, MLtypes, RFprobability, alldata, plotlist=[[dkey], []], masks=type_masks, 
+               xlabel='Random Forest SNIa Probability', ylabel='Number',
                plotdict=plotdict, bins=p_bins, asize=Small, weights=False,
                title='{}'.format(plotlabels[dkey]))
     f.set_xlim(0, 1.0)
     f.legend(loc='upper center', fontsize='small', numpoints=1)
                
     f = fig.add_subplot(plot_offset + 2)
-    plot_types(f, MLtypes, RFprobability, alldata, plotlist=[[dkey], []], masks=type_masks, xlabel='Random Forest SNIa Probability', ylabel='Number',
+    plot_types(f, MLtypes, RFprobability, alldata, plotlist=[[dkey], []], masks=type_masks, 
+               xlabel='Random Forest SNIa Probability', ylabel='Number',
                plotdict=plotdict, bins=p_bins, asize=Small, yscale=log, weights=False,
                title='{}'.format(plotlabels[dkey]))
     f.set_xlim(0, 1.0)
@@ -617,7 +623,7 @@ def plot_probabilities(fig, dkey, alldata, MLtypes, type_masks, performance, tar
     f.set_xlabel('Threshold Probability for Classification, $P_{t}$')
     f.set_ylabel('SNIa Efficiency, Purity [$P_{Ia} \ge P_{t}$]')
     f.legend(loc='lower right', fontsize='small')
-    f.set_ylim(0.8, 1.0)
+    f.set_ylim(y_lo, 1.0)
     f.set_xlim(0, 1.0)
     f.set_title('{}'.format(plotlabels[dkey]), size=sizes[Title])
     
@@ -642,20 +648,54 @@ def plot_probabilities(fig, dkey, alldata, MLtypes, type_masks, performance, tar
         f.legend(loc='best', fontsize='small', numpoints=1)
         f.set_title('{}'.format(plotlabels[dkey]), size=sizes[Title])
 
-    # get efficiency and purity for chosen data set
-    C_Dcut = np.arange(0.0, 1.0, 0.005)
-    colname = 'fit_pr'
-    C_Eff, C_Pur = get_EffPur(alldata[dkey], C_Dcut, colname=colname, alltypes_colname=alltypes_colname)
-    f = fig.add_subplot(plot_offset + 6)
-    f.plot(C_Dcut, C_Eff, 'b--', label='efficiency', lw=2)
-    f.plot(C_Dcut, C_Pur, c='r', label='purity', lw=2)
-    f.set_xlabel('$P_{SALT}$')
-    f.set_ylabel('Efficiency, Purity [$P \ge P_{SALT}$]')
-    f.legend(loc='best', fontsize='small', numpoints=1)
-    f.set_ylim(0, 1.0)
-    f.set_xlim(0, 1.0)
-    f.set_title('{}'.format(plotlabels[dkey]), size=sizes[Title])
+    if colname in alldata[dkey].colnames:
+        # get efficiency and purity for chosen data set
+        C_Dcut = np.arange(0.0, 1.0, 0.005)
+        C_Eff, C_Pur = get_EffPur(alldata[dkey], C_Dcut, colname=colname, alltypes_colname=alltypes_colname)
+        f = fig.add_subplot(plot_offset + 6)
+        f.plot(C_Dcut, C_Eff, 'b--', label='efficiency', lw=2)
+        f.plot(C_Dcut, C_Pur, c='r', label='purity', lw=2)
+        f.set_xlabel('$P_{SALT}$')
+        f.set_ylabel('Efficiency, Purity [$P \ge P_{SALT}$]')
+        f.legend(loc='best', fontsize='small', numpoints=1)
+        f.set_ylim(0, 1.0)
+        f.set_xlim(0, 1.0)
+        f.set_title('{}'.format(plotlabels[dkey]), size=sizes[Title])
+    else:
+        print('  Skipping Eff-Pur plot for {} data: {} not available'.format(dkey, colname)) 
 
+    return
+
+def plot_purity_vs_effcy(fig, performance, plot_offset=110, eff_lo=.8, pur_lo=.925):
+
+
+    f = fig.add_subplot(plot_offset + 1)
+    mark = iter(Default_markers)
+    color = iter(Default_colors)
+    for dkey in performance.keys():
+        # plot points for classification methods
+        classification_keys = [k for k in performance[dkey].keys() if g.P_Threshold in k]
+        col = next(color)
+        mk = next(mark)
+        effs = [float(re.split(g.P_Threshold + '_', k)[-1]) for k in classification_keys]
+        purs = [performance[dkey][re.sub(g.P_Threshold, g.Score, k)] for k in classification_keys]
+        if len(purs) > 0 and len(effs) > 0:
+            pur_lo = min(min(purs), pur_lo)
+            eff_lo = min(min(effs), eff_lo)
+            f.plot(effs, purs, marker=next(mark), c=col, label=dkey, ls='')
+        maxprob_keys = [k for k in performance[dkey].keys() if g.MaxProb in k]
+        if len(maxprob_keys) > 1:
+            f.plot(performance[dkey][g.Efficiency_MaxProb], performance[dkey][g.Purity_MaxProb],
+                   c=col, label=' '.join([dkey, g.MaxProb]), marker=next(mark))
+            pur_lo = min(performance[dkey][g.Purity_MaxProb], pur_lo) 
+            eff_lo = min(performance[dkey][g.Efficiency_MaxProb], eff_lo)
+
+    f.set_xlabel('Efficiency')
+    f.set_ylabel('Purity')
+    f.legend(loc='lower left', fontsize='small', ncol=2)
+    f.set_ylim(pur_lo - 0.025, 1.01)
+    f.set_xlim(eff_lo - 0.025, 1.01)    
+    
     return
 
                
@@ -784,7 +824,7 @@ def plot_scatter_bytype(fig, dkey, alldata, types, type_masks, nplot=0, lgnd_tit
         nplot += 1
         f = fig.add_subplot(plot_offset + nplot)
         plotdict['labels'][contour] = '{} Density'.format(contour_label)
-        plot_types(f, types, xvar, alldata, plotlist=[[dkey], []], masks=type_masks, yvar=yvar, xlabel=xlabel, ylabel=ylabel, cuts={},
+        plot_types(f, types, xvar, alldata, plotlist=[[dkey], []], masks=type_masks, yvar=yvar, xlabel=xlabel, ylabel=ylabel, cuts=cuts,
                    plotdict=plotdict, ctrxbin=ctrxbinwidth, ctrybin=ctrybinwidth, title=title, weights=False, plotid=plotid)
         f.set_xlim(x_min, x_max)
         f.set_ylim(y_min, y_max)
@@ -1100,6 +1140,27 @@ def get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=6, new=True, for
     return fig, nplot, subpage, closed
 
 
+def rename_features(file_formats, feature_names, data):
+
+    for dkey in data.keys():
+        if file_formats[dkey] != g.default_format: #check for file_format != 'text'
+            for ft in feature_names:
+                if ft not in data[dkey].colnames:
+                    alt = g.alternate_feature_names[g.default_format].get(ft, None)
+                    #check for columns in data
+                    if len(data[dkey]) > 0 and ft is not None:
+                        alts = alt if type(alt)==list else [alt]
+                        for alt in alts:
+                            if alt in data[dkey].colnames:
+                                data[dkey].rename_column(alt, ft)
+                                print('  Renaming {} to {} for {} data'.format(alt, ft, dkey))
+
+                if ft not in data[dkey].colnames:
+                    print('  No alternate feature name available for {} in {} data'.format(ft, dkey))
+
+    return data
+
+
 def close_page(fig, multiPdf, npage, subpage):
     fig.tight_layout()
     with warnings.catch_warnings():
@@ -1116,7 +1177,7 @@ def close_page(fig, multiPdf, npage, subpage):
 def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_colnames,  
                template_info, plotlist = [[], []], cuts={}, user_prefs={},
                savetypes=g.Ia, plot_groups=[g.Performance, g.SALT], plot_id='', CLFid=g.RF,
-               totals=False, target_class=0, minmax=False, debug=False):
+               totals=False, target_class=0, minmax=False, debug=False, file_formats={}):
 
     print('\n********** STARTING PLOTS **********\n')
 
@@ -1180,15 +1241,23 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             # need labeled data for probability plots
             dkeys = [k for k in alldata.keys() if g.Training not in k and k in type_masks[g.TrueType].keys()]
             subpage = 1
+            colname = 'fit_pr'
+            alldata = rename_features(file_formats, [colname], alldata) #check formats and rename columns
+
             for dkey in dkeys:
                 print('  Plotting {} Data'.format(dkey))
                 fig = plt.figure(figsize=(figx, figy))
                 plot_probabilities(fig, dkey, alldata, MLtypes_plot, type_masks[g.TrueType], performance[dkey],
-                                   target_class=target_class, alltypes_colname=alltypes_colnames[dkey])
+                                   target_class=target_class, alltypes_colname=alltypes_colnames[dkey],
+                                   colname=colname)
                 subpage = close_page(fig, multiPdf, npage, subpage)
                 page_total += 1
 
-            #TODO Summary plot of purity vs effcy
+            #Summary plot of purity vs effcy
+            fig = plt.figure(figsize=(figx, figy))
+            plot_purity_vs_effcy(fig, performance)
+            subpage = close_page(fig, multiPdf, npage, subpage)
+            page_total += 1
 
             # plots for number of SN per template
             if (g.Test in alldata.keys()):
@@ -1209,6 +1278,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             subpage = 1
             nplot = 0
             fig = plt.figure(figsize=(figx, figy))
+            alldata = rename_features(file_formats, ['x1', 'c', 'fit_pr'], alldata) #check formats and rename columns
             for combo in combos:                        # loop over combinations of simulation and data
                 for mkey, tmask in type_masks.items():  # loop over classification options
                     types = MLtypes_plot if g.TrueType in mkey else CLFtypes_plot   # types corresponding to mask choice
@@ -1318,6 +1388,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             subpage = 1
             nplot = 0
             fig = plt.figure(figsize=(figx, figy))
+            alldata = rename_features(file_formats, ['t0_err', 'c_err', 'x1_err'], alldata) #check formats and rename columns
             for combo in combos:
                 for mkey, tmask in type_masks.items():
                     types = MLtypes_plot if g.TrueType in mkey else CLFtypes_plot   # types corresponding to mask choice
@@ -1504,18 +1575,11 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                 Bazincombinedmask[col] = get_combined_fitmask(col, Bazinfitmask, mask_id='Bazin-combined', 
                                                                  joint_Pass=joint_Pass, file_id=plot_id)
             
-            # now combine filter and color cuts
-            #Bazinmask = {}
-            #for col in colors:
-            #    Bazinmask[col] = {}
-            #     for dkey, mask in Bazincombinedmask[col].items():
-            #        Bazinmask[col][dkey] = mask & Bazincolormask[col+Bazin+ne999][dkey]
-            #        print(col, np.count_nonzero(Bazinmask[col]), float(np.count_nonzero(Bazinmask[col]))/len(Bazinmask[col]))
-                                     
             subpage = 1
             nplot = 0
             valid_keys = get_valid_keys(alldata, Bazin_features)  # check that data has features
             bazin_combos = get_valid_combos(combos, valid_keys)
+            """
             fig = plt.figure(figsize=(figx, figy))
             #for combo in [bazin_combos[0]]:
             for combo in bazin_combos:
@@ -1549,14 +1613,53 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                     fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage)
                     if closed:
                         page_total += 1
-                        
+
+            if not closed:
+                subpage = close_page(fig, multiPdf, npage, subpage)
+                page_total += 1
+                closed = True
+            """
+
+            # Bazin scatter plots
+            xvars = [t_rise]
+            yvars = [t_fall]
+            xmins = [0.]
+            xmaxs = [20.]
+            ymins = [0.]
+            ymaxs = [120.]
+            nplot = 0
+            fig = plt.figure(figsize=(figx, figy))
+            for dkey in alldata.keys():                 # loop over data sets                                                                                
+                for mkey, tmask in type_masks.items():  # loop over classification options                                                                   
+                    if dkey in tmask.keys():            # check that mask exists for dataset                                                                 
+                        if g.TrueType in mkey:
+                            types = MLtypes
+                        else:
+                            types = TFtypes if dkey in type_masks[g.TrueType].keys() else CLFtypes
+                        print('  Plotting Bazin scatter for {} Data ({})'.format(dkey, classification_labels[mkey]))
+                        for filt in fit_bands:
+                            print(Bazinfitmask[filt].keys())
+                            for xvar, yvar, xmin, xmax, ymin, ymax in zip(xvars, yvars, xmins, xmaxs, ymins, ymaxs):
+                                xvarname = '_'.join([g.Bazin, filt, xvar])
+                                xlabel = ' '.join([g.Bazin, filt, bazinlabels[xvar]])
+                                yvarname = '_'.join([g.Bazin, filt, yvar])
+                                ylabel = ' '.join([g.Bazin, filt, bazinlabels[yvar]])
+                                nplot = plot_scatter_bytype(fig, dkey, alldata, types, tmask, nplot=nplot, xvar=xvarname, yvar=yvarname,
+                                                            lgnd_title=classification_labels[mkey], x_min=xmin, x_max=xmax,
+                                                            plotid='_'.join([xvar, yvar, scatter]), cuts={},
+                                                            y_min=ymin, y_max=ymax, xlabel=xlabel, ylabel=ylabel)
+                                fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage)
+                        if closed:
+                            page_total += 1
+                    else:
+                        print('  Skipping scatter plots for {}: not available for {} data'.format(mkey, dkey))
+
             if not closed:
                 subpage = close_page(fig, multiPdf, npage, subpage)
                 page_total += 1
                 closed = True
 
             npage += 1
-
             
     multiPdf.close()
     plt.rcParams.update({'figure.max_open_warning': 0})

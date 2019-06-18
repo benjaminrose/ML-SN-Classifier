@@ -1728,7 +1728,7 @@ def main(args, start_time=-1):
                    template_info, user_prefs=user_prefs, CLFid=CLFid, cuts=cuts,
                    plot_groups=args.plots, plot_id=plot_id, plotlist=[simlist, datalist],
                    totals=args.totals, savetypes=savetypes, target_class=target_class,
-                   minmax=args.minmax, debug=args.debug)
+                   minmax=args.minmax, debug=args.debug, file_formats=file_formats)
 
     return performance
 
