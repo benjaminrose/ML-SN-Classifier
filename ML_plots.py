@@ -682,14 +682,15 @@ def plot_purity_vs_effcy(fig, performance, plot_offset=110, eff_lo=.8, pur_lo=.9
         if len(purs) > 0 and len(effs) > 0:
             pur_lo = min(min(purs), pur_lo)
             eff_lo = min(min(effs), eff_lo)
-            f.plot(effs, purs, marker=next(mark), c=col, label=dkey, ls='')
+            f.plot(effs, purs, marker=next(mark), c=col, label=dkey+' (Fix. Eff.)', ls='')
+        f.plot(performance[dkey][g.Efficiency], performance[dkey][g.Purity], c=col, label=dkey)
         maxprob_keys = [k for k in performance[dkey].keys() if g.MaxProb in k]
         if len(maxprob_keys) > 1:
             f.plot(performance[dkey][g.Efficiency_MaxProb], performance[dkey][g.Purity_MaxProb],
                    c=col, label=' '.join([dkey, g.MaxProb]), marker=next(mark))
             pur_lo = min(performance[dkey][g.Purity_MaxProb], pur_lo) 
             eff_lo = min(performance[dkey][g.Efficiency_MaxProb], eff_lo)
-
+            
     f.set_xlabel('Efficiency')
     f.set_ylabel('Purity')
     f.legend(loc='lower left', fontsize='small', ncol=2)
@@ -807,7 +808,7 @@ def plot_SALT(fig, plotlist, alldata, types, type_masks, nplot=0, lgnd_title='',
     return nplot
 
 
-def plot_scatter_bytype(fig, dkey, alldata, types, type_masks, nplot=0, lgnd_title='',
+def plot_scatter_bytype(fig, dkey, alldata, types, type_masks, nplot=0, lgnd_title='', lgnd_loc='best',
                         xvar='x1', yvar='c', contour_label='', ctrxbin=0., ctrybin=0., Nbins=40, cuts={}, plotid='x1_c_scatter',
                         x_min=-5.25, x_max=5.25, y_min=-0.9, y_max=0.65, xlabel=SALTlabels['x1'], ylabel=SALTlabels['c'],
                         ellipse=False, ell_x=8.6, ell_y=0.76, plot_offset=plot_offset6):
@@ -828,7 +829,7 @@ def plot_scatter_bytype(fig, dkey, alldata, types, type_masks, nplot=0, lgnd_tit
                    plotdict=plotdict, ctrxbin=ctrxbinwidth, ctrybin=ctrybinwidth, title=title, weights=False, plotid=plotid)
         f.set_xlim(x_min, x_max)
         f.set_ylim(y_min, y_max)
-        f.legend(loc='lower left', fontsize='small', scatterpoints=1, ncol=Ncols, title=lgnd_title)
+        f.legend(loc=lgnd_loc, fontsize='small', scatterpoints=1, ncol=Ncols, title=lgnd_title)
         f.set_title(title, size=sizes[Title])
         if ellipse:
             ellipse_this = Ellipse(xy=(0,0), width=ell_x, height=ell_y, edgecolor='red', fc='None', lw=2, ls='dashed')
@@ -1579,7 +1580,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             nplot = 0
             valid_keys = get_valid_keys(alldata, Bazin_features)  # check that data has features
             bazin_combos = get_valid_combos(combos, valid_keys)
-            """
+
             fig = plt.figure(figsize=(figx, figy))
             #for combo in [bazin_combos[0]]:
             for combo in bazin_combos:
@@ -1618,7 +1619,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                 subpage = close_page(fig, multiPdf, npage, subpage)
                 page_total += 1
                 closed = True
-            """
+            
 
             # Bazin scatter plots
             xvars = [t_rise]
@@ -1629,16 +1630,18 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             ymaxs = [120.]
             nplot = 0
             fig = plt.figure(figsize=(figx, figy))
-            for dkey in alldata.keys():                 # loop over data sets                                                                                
-                for mkey, tmask in type_masks.items():  # loop over classification options                                                                   
-                    if dkey in tmask.keys():            # check that mask exists for dataset                                                                 
+            for dkey in alldata.keys():                 # loop over data sets
+                                                               
+                for mkey, tmask in type_masks.items():  # loop over classification options                                                   
+
+                    if dkey in tmask.keys():            # check that mask exists for dataset                                                 
+
                         if g.TrueType in mkey:
                             types = MLtypes
                         else:
                             types = TFtypes if dkey in type_masks[g.TrueType].keys() else CLFtypes
                         print('  Plotting Bazin scatter for {} Data ({})'.format(dkey, classification_labels[mkey]))
                         for filt in fit_bands:
-                            print(Bazinfitmask[filt].keys())
                             for xvar, yvar, xmin, xmax, ymin, ymax in zip(xvars, yvars, xmins, xmaxs, ymins, ymaxs):
                                 xvarname = '_'.join([g.Bazin, filt, xvar])
                                 xlabel = ' '.join([g.Bazin, filt, bazinlabels[xvar]])
@@ -1646,13 +1649,17 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                                 ylabel = ' '.join([g.Bazin, filt, bazinlabels[yvar]])
                                 nplot = plot_scatter_bytype(fig, dkey, alldata, types, tmask, nplot=nplot, xvar=xvarname, yvar=yvarname,
                                                             lgnd_title=classification_labels[mkey], x_min=xmin, x_max=xmax,
-                                                            plotid='_'.join([xvar, yvar, scatter]), cuts={},
-                                                            y_min=ymin, y_max=ymax, xlabel=xlabel, ylabel=ylabel)
+                                                            plotid='_'.join([xvar, yvar, scatter]), cuts=Bazinfitmask[filt][Joint+ne],
+                                                            y_min=ymin, y_max=ymax, xlabel=xlabel, ylabel=ylabel, 
+                                                            lgnd_loc='upper right')
                                 fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage)
-                        if closed:
-                            page_total += 1
+                            if closed:
+                                page_total += 1
+
                     else:
                         print('  Skipping scatter plots for {}: not available for {} data'.format(mkey, dkey))
+
+
 
             if not closed:
                 subpage = close_page(fig, multiPdf, npage, subpage)
@@ -1737,53 +1744,6 @@ def plot_Bazincolors(fig, plotlist, alldata, types, type_masks, nplot=0, lgnd_ti
 
     return nplot
 
-def plot_scatter_Bazin_color(): #TBD
-        # page 21+ - Bazin scatter plots
-        xvars = [t_rise]
-        yvars = [t_fall]
-        xbinlo = [0.]
-        xbinhi = [20.]
-        ybinlo = [0.]
-        ybinhi = [120.]
-        xbinwidth = [0.5]
-        ybinwidth = [2]
-        # add scatter plot t_rise vs t_fall;
-        for l, s in zip([Training] + MLdatalist,  g.Simulated + [g.Data for m in MLdatalist]):
-            print('\nStarting page {} (Bazin scatterplots)\n'.format(npages))
-            fig = plt.figure(figsize=(figx, figy))
-            npages += 1
-            nplot = 0
-            for filt in fit_bands:
-                for xvar, yvar, xmin, xmax, ymin, ymax, dx, dy in zip(xvars, yvars, xbinlo, xbinhi, ybinlo, ybinhi,
-                                                                      xbinwidth, ybinwidth):
-                    nplot += 1
-                    f = fig.add_subplot(plot_offset6 + nplot)
-                    xvarname = Bazin_ + filt + '_' + xvar
-                    xlabel = Bazin + ' ' + filt + ' ' + bazinlabels[xvar]
-                    yvarname = Bazin_ + filt + '_' + yvar
-                    ylabel = Bazin + ' ' + filt + ' ' + bazinlabels[yvar]
-                    if (doBazincuts):
-                        pltcuts = Bazincuts[filt][All]
-                    else:
-                        pltcuts = {}
-                    plotdict['labels'][contour] = 'SNIa Density'
-                    if (l in MLdatalist_labeled or l == Training):
-                        pbztypes = MLtypes
-                    else:
-                        pbztypes = CLFtypes
-                    plot_types(f, pbztypes, xvarname, alldata, plotlist=[l], yvar=yvarname, xlabel=xlabel, ylabel=ylabel,
-                               cuts=pltcuts, plotdict=plotdict, ctrxbin=dx, ctrybin=dy, title=plotlabels[s][l],
-                               weights=False)
-                    f.set_xlim(xmin - dx, xmax + dx)
-                    f.set_ylim(ymin - dy, ymax + dy)
-                    f.legend(loc='best', fontsize='small', scatterpoints=1, ncol=Ncols)
-
-            fig.tight_layout()
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                multiPdf.savefig(fig)
-
-        return
 
 def plot_cross_validation():  #TBD
     if (args.cv or args.pc):
