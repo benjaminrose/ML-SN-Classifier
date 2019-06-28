@@ -70,6 +70,7 @@ StII = 'Stage2_'
 txt = '.txt'
 hdf5 = '.hdf5'
 fits = '.fits'
+pkl = '.pkl'
 
 #version
 version = '3.3'
@@ -1660,6 +1661,10 @@ def main(args, start_time=-1):
         print('\n  Saving classified data to {}\n    Saved columns:\n    {}'.format(filename, ', '.join(save_data.colnames))) 
         save_data.write(filename, format='ascii', overwrite=True)
 
+    # save performance dict
+    pffile =  os.path.join(args.filedir,'_'.join([g.Performance, file_id]) + pkl)
+    joblib.dump(performance, pffile)
+    print('\nSaving performance to file {}'.format(pffile))
 
     # CROSS_VALIDATION
     # read in data
