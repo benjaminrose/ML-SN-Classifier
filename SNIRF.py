@@ -1662,7 +1662,8 @@ def main(args, start_time=-1):
         save_data.write(filename, format='ascii', overwrite=True)
 
     # save performance dict
-    pffile =  os.path.join(args.filedir,'_'.join([g.Performance, file_id]) + pkl)
+    filenames = '_'.join([os.path.split(data_files[k])[-1].split('.')[0] for k in simlist + datalist])
+    pffile =  os.path.join(args.filedir,'_'.join([g.Performance, filenames, file_id]) + pkl)
     joblib.dump(performance, pffile)
     print('\nSaving performance to file {}'.format(pffile))
 
