@@ -305,10 +305,10 @@ def get_purity_scores(yset, probs, effcies, pos_label=0):
     return pur, eff, thresh, P_eff_list, score_list
 
 
-def get_ROC(yset_ROC, probs):
+def get_ROC(yset_ROC, probs, pos_label=0):
     ### Compute ROC curve and AUC
     if len(np.unique(yset_ROC)) > 1:
-        fpr, tpr, roc_thres = roc_curve(yset_ROC, probs, pos_label=0)  # restricted to binary classification
+        fpr, tpr, roc_thres = roc_curve(yset_ROC, probs, pos_label=pos_label)  # restricted to binary classification
         AUC = 1 - roc_auc_score(yset_ROC, probs)  # need (1 - score) if pos_label=0
         print('\n  AUC = {:.3f}'.format(AUC))
     else:
@@ -1077,10 +1077,11 @@ def get_pscores_with_purities(classifiers, features, pfilename, purities, nclass
     return pscores
 
 
-def get_HR(data, key, H0=68.62, Om0=.301, zkey='z'):
+def get_HR(data, key, H0=68.62, Om0=.301, zkey='z', mukey='mu'):
     
-    if 'mu' not in data.colnames:
-        print('  mu not available; filling Hubble Residual column for {} data with {}'.format(key, g.nodata))
+    if mukey not in data.colnames:
+        print('  {} not available; filling Hubble Residual column for {} data with {}'.format(mukey,
+                                                                                              key, g.nodata))
         data[g.HR] = g.nodata
     else:
         if 'sim_mu' not in data.colnames:
@@ -1089,7 +1090,10 @@ def get_HR(data, key, H0=68.62, Om0=.301, zkey='z'):
                 cosmo = FlatLambdaCDM(H0=H0, Om0=Om0)
                 data['true_mu'] = cosmo.distmod(data[zkey])
             try:
-                data[g.HR] = data['mu'] - data['true_mu']
+                if mukey in data.colnames and 'MUMODEL' in data.colnames and 'M0DIF' in data.colnames:
+                    data[g.HR] = data['MU'] - data['MUMODEL'] - data['M0DIF'] #spec fitres data
+                else: 
+                    data[g.HR] = data[mukey] - data['true_mu']
             except:
                 print('  Unable to compute Hubble residuals using columns true_mu/{}'.format(zkey))
         else:
@@ -1706,7 +1710,10 @@ def main(args, start_time=-1):
 
         # augment data columns with other variables
         for key in sorted(alldata.keys()):
-            alldata[key] = get_HR(alldata[key], key, H0=args.H0, Om0=args.OmegaM, zkey='z') #Hubble residual
+            zkey = g.generic_feature_names['z'][file_formats[key]]
+            mukey = g.generic_feature_names['mu'][file_formats[key]]
+            alldata[key] = get_HR(alldata[key], key, H0=args.H0, Om0=args.OmegaM, 
+                                  zkey=zkey, mukey=mukey) #Hubble residual
         
         # compute weights for plotting normalized simulations and data
         if len(args.weights) == 0:

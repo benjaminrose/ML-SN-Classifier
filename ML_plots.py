@@ -521,6 +521,12 @@ def plot_types(f, types, xvar, alldata, plotlist=[''], masks={}, weights=True, t
             if len(datdict) == 0:
                 print('    Skipping {} data {} plot: sample not found'.format(dat, plotid))
             else:
+                if xvar not in datdict.colnames:
+                    print('    Skipping {} data {} plot: {} not found'.format(dat, plotid, xvar))
+                    continue
+                if len(yvar) > 0 and yvar not in datdict.colnames:
+                    print('    Skipping {} data {} plot: {} not found'.format(dat, plotid, yvar))
+                    continue
                 sweights = datdict[g.Weights] if (weights and g.Weights in datdict.colnames) else None
                 for t in types:
                     if g.Total in t or (t in masks[dat].keys() and np.count_nonzero(masks[dat][t])):
@@ -630,7 +636,7 @@ def plot_probabilities(fig, dkey, alldata, MLtypes, type_masks, performance, tar
     ax1 = fig.add_subplot(plot_offset + 4)
     fpr = performance[g.ROC][g.FPR]
     tpr = performance[g.ROC][g.TPR]
-    ax1.plot(fpr, tpr, lw=2, label='ROC curve (area = {:0.2f})'.format(performance[g.ROC][g.AUC]))
+    ax1.plot(fpr, tpr, lw=2, label='ROC SNIa (area = {:0.2f})'.format(performance[g.ROC][g.AUC]))
     ax1.set_xlabel('False Positive Rate')
     ax1.set_ylabel('True Positive Rate')
     ax1.legend(loc='lower right', fontsize='small')
@@ -682,20 +688,20 @@ def plot_purity_vs_effcy(fig, performance, plot_offset=110, eff_lo=.8, pur_lo=.9
         if len(purs) > 0 and len(effs) > 0:
             pur_lo = min(min(purs), pur_lo)
             eff_lo = min(min(effs), eff_lo)
-            f.plot(effs, purs, marker=next(mark), c=col, label=dkey+' (Fix. Eff.)', ls='')
-        f.plot(performance[dkey][g.Efficiency], performance[dkey][g.Purity], c=col, label=dkey)
+            f.plot(purs, effs, marker=next(mark), c=col, label=dkey+' (Fix. Eff.)', ls='')
+        f.plot(performance[dkey][g.Purity], performance[dkey][g.Efficiency], c=col, label=dkey)
         maxprob_keys = [k for k in performance[dkey].keys() if g.MaxProb in k]
         if len(maxprob_keys) > 1:
-            f.plot(performance[dkey][g.Efficiency_MaxProb], performance[dkey][g.Purity_MaxProb],
+            f.plot( performance[dkey][g.Purity_MaxProb], performance[dkey][g.Efficiency_MaxProb],
                    c=col, label=' '.join([dkey, g.MaxProb]), marker=next(mark))
             pur_lo = min(performance[dkey][g.Purity_MaxProb], pur_lo) 
             eff_lo = min(performance[dkey][g.Efficiency_MaxProb], eff_lo)
             
-    f.set_xlabel('Efficiency')
-    f.set_ylabel('Purity')
+    f.set_ylabel('Efficiency')
+    f.set_xlabel('Purity')
     f.legend(loc='lower left', fontsize='small', ncol=2)
-    f.set_ylim(pur_lo - 0.025, 1.01)
-    f.set_xlim(eff_lo - 0.025, 1.01)    
+    f.set_xlim(pur_lo - 0.025, 1.01)
+    f.set_ylim(eff_lo - 0.025, 1.01)    
     
     return
 
@@ -875,7 +881,8 @@ def plot_hubble(fig, plotlist, alldata, types, type_mask, nplot=0, lgnd_title=''
     return nplot
 
 
-def plot_HD(fig, dkey, alldata, types, type_mask, nplot=0, lgnd_title='', plot_offset=plot_offset6):
+def plot_HD(fig, dkey, alldata, types, type_mask, nplot=0, lgnd_title='', 
+            z='z', mu='mu', plot_offset=plot_offset6):
     
     # Scatter-plot Hubble Diagram
     rtypes = types[::-1] #reverse so Ias are in top
@@ -885,11 +892,14 @@ def plot_HD(fig, dkey, alldata, types, type_mask, nplot=0, lgnd_title='', plot_o
     zhi = g.zhi[dkey] if dkey == g.Training or dkey == g.Test or dkey == g.Validation else g.zhi[g.Data] 
     zbins = np.linspace(g.zlo, zhi, Nzbins + 1)
     f = fig.add_subplot(plot_offset + nplot)
-    plot_types(f, types, 'z', alldata, plotlist=[[dkey], []], masks=type_mask, yvar='mu', xlabel='Redshift', ylabel='$\mu$', bins=zbins,
+    if z in alldata[dkey].colnames and mu in alldata[dkey].colnames:
+        plot_types(f, types, z, alldata, plotlist=[[dkey], []], masks=type_mask, yvar=mu, xlabel='Redshift', ylabel='$\mu$', bins=zbins,
                    plotdict=plotdict, weights=False, title=title)
-    f.legend(loc='lower right', fontsize='small', numpoints=1, scatterpoints=1, ncol=1, title=lgnd_title)
-    f.set_xlim(g.zlo, zhi)
-    f.set_ylim(mulo, muhi)
+        f.legend(loc='lower right', fontsize='small', numpoints=1, scatterpoints=1, ncol=1, title=lgnd_title)
+        f.set_xlim(g.zlo, zhi)
+        f.set_ylim(mulo, muhi)
+    else:
+        print('    Skipping HD plot for {} data, {} or {} not available'.format(dkey, z, mu))
     
     return nplot
 
@@ -1330,6 +1340,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
 
         if g.Hubble in group:
             print('\nStarting pages {}.x: {} plots'.format(npage, group))
+            alldata = rename_features(file_formats, ['z', 'mu'], alldata) #check formats and rename columns
             subpage = 1
             nplot = 0
             fig = plt.figure(figsize=(figx, figy))

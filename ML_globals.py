@@ -143,16 +143,16 @@ allowed_features = {'text': ['c', 'x0', 'x1', 't0', 'z', 'chi2', 'fit_pr', 'gpea
                               'SIMNULL1', 'SIM_RV', 'SIM_x0', 'SIM_mB'],
                     }
 
-alternate_feature_names = {'text': {'snid':'CID', 'z':'zCMB', 't0':'PKMJD', 't0_err':'PKMJDERR',
+alternate_feature_names = {'text': {'snid':'CID', 'z':'zCMB', 't0':'PKMJD', 't0_err':'PKMJDERR', 
                                     'x0_err':'x0ERR', 'x1_err':'x1ERR', 'c_err':'cERR', 
-                                    'chi2':'FITCHI2', 'dof':'NDOF', 
+                                    'chi2':'FITCHI2', 'dof':'NDOF', 'mu':'MU', 'muerror': 'MUERR',
                                     'fit_pr':'FITPROB', 'snr1':'SNRMAX1', 'snr2':'SNRMAX2', 'snr3':'SNRMAX3',
-                                    'sim_type':'SIM_TYPE_INDEX', 'sim_nonIa':'SIM_TEMPLATE_INDEX',
+                                    'sim_type':'SIM_TYPE_INDEX', 'sim_nonIa':'SIM_TEMPLATE_INDEX', 'sim_mu': 'SIM_DLMAG',
                                     },
                            'fitres':{'CID':'snid','zCMB':'z', 'PKMJD':'t0', 'PKMJDERR':['PKMJDerr', 't0_err'],
-                                     'FITCHI2':'chi2', 'FITPROB':'fit_pr',
+                                     'FITCHI2':'chi2', 'FITPROB':'fit_pr', 'MU': 'mu', 'MUERR': 'muerror',
                                      'SNRMAX1':'snr1', 'SNRMAX2':'snr2', 'SNRMAX3':'snr3', 'SIM_TYPE_INDEX':'sim_type',
-                                     'SIM_TEMPLATE_INDEX':'sim_nonIa', 
+                                     'SIM_TEMPLATE_INDEX':'sim_nonIa', 'SIM_DLMAG':'sim_mu',
                                      'x0ERR':'x0_err', 'x1ERR': 'x1_err', 'cERR': 'c_err',
                                     }
                           }
@@ -179,7 +179,8 @@ generic_feature_names = {'z':{'text':'z', 'fitres':'zCMB'},
                          'snrmx':{'text':'snr1', 'fitres':'SNRMAX1'},
                          'sim_type':{'text':'sim_type', 'fitres':'SIM_TYPE_INDEX'},
                          'sim_template':{'text':'sim_nonIa', 'fitres':'SIM_TEMPLATE_INDEX'},
-                         'snid':{'text':'snid','fitres':'CID'},                 
+                         'snid':{'text':'snid','fitres':'CID'},
+                         'mu':{'text':'mu','fitres':'MU'},
                 } 
 
 allowed_templates = {'2P':['20'], '2N':['21'], '2L':['22'], '1b':['32'], '1bc':['33'],
