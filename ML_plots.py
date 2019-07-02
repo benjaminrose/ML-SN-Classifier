@@ -672,13 +672,14 @@ def plot_probabilities(fig, dkey, alldata, MLtypes, type_masks, performance, tar
 
     return
 
-def plot_purity_vs_effcy(fig, performance, plot_offset=110, eff_lo=.8, pur_lo=.925):
+def plot_purity_vs_effcy(fig, performance, dkeys=None, plot_offset=110, eff_lo=.8, pur_lo=.925):
 
 
     f = fig.add_subplot(plot_offset + 1)
     mark = iter(Default_markers)
     color = iter(Default_colors)
-    for dkey in performance.keys():
+    dkeys = performance.keys() if dkeys is None else dkeys
+    for dkey in dkeys:
         # plot points for classification methods
         classification_keys = [k for k in performance[dkey].keys() if g.P_Threshold in k]
         col = next(color)
@@ -689,7 +690,8 @@ def plot_purity_vs_effcy(fig, performance, plot_offset=110, eff_lo=.8, pur_lo=.9
             pur_lo = min(min(purs), pur_lo)
             eff_lo = min(min(effs), eff_lo)
             f.plot(purs, effs, marker=next(mark), c=col, label=dkey+' (Fix. Eff.)', ls='')
-        f.plot(performance[dkey][g.Purity], performance[dkey][g.Efficiency], c=col, label=dkey)
+        if g.Purity in performance[dkey].keys() and g.Efficiency in performance[dkey].keys():
+            f.plot(performance[dkey][g.Purity], performance[dkey][g.Efficiency], c=col, label=dkey)
         maxprob_keys = [k for k in performance[dkey].keys() if g.MaxProb in k]
         if len(maxprob_keys) > 1:
             f.plot( performance[dkey][g.Purity_MaxProb], performance[dkey][g.Efficiency_MaxProb],
@@ -733,12 +735,13 @@ def plot_template_statistics(template_info, MLtypes, npage, subpage, multiPdf, C
     rects3 = ax.bar(index, TM0[g.Ia], .3, color=color[g.Ia])
     bottom2 = TMs[g.Ia]
     bottom = TM0[g.Ia]
+
     nonIas = [typ for typ in MLtypes if not (typ == g.Ia)]
     for nonIa in nonIas:
         rects2 = ax2.bar(index, TMs[nonIa], .3, bottom=bottom2, color=color[nonIa], label='Typed as ' + nonIa)
-        bottom2 = map(add, bottom2, TMs[nonIa])
+        bottom2 = list(map(add, bottom2, TMs[nonIa]))
         rects4 = ax.bar(index, TM0[nonIa], .3, bottom=bottom, color=color[nonIa])
-        bottom = map(add, bottom, TM0[nonIa])
+        bottom = list(map(add, bottom, TM0[nonIa]))
 
     plt.xlabel('Template')
     ax.set_ylabel('Number of Ia (template = 0)')
@@ -1266,7 +1269,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
 
             #Summary plot of purity vs effcy
             fig = plt.figure(figsize=(figx, figy))
-            plot_purity_vs_effcy(fig, performance)
+            plot_purity_vs_effcy(fig, performance, dkeys=dkeys)
             subpage = close_page(fig, multiPdf, npage, subpage)
             page_total += 1
 
