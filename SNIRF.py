@@ -250,6 +250,21 @@ def get_features(features, data):
     X = np.vstack(flist).T
     return X
 
+def check_features(features, data, format=g.default_format):
+
+    if not all([f in data.columns for f in features]):
+
+        other_formats = [k for k in g.alternate_feature_names.keys() if format not in k]
+        for f in features:
+            if not f in data.columns:
+                alt_names = [v for fmt in other_formats for k, v in g.alternate_feature_names[fmt].items() if f==k]
+                alts = [a for l in alt_names for a in l if type(l)==list] + [l for l in alt_names if type(l)!=list] #flatten
+                alt_features = [a for a in alts if a in data.columns]
+                if len(alt_features) > 0:
+                    features[features.index(f)] = alt_features[0]
+                    print('    Replacing feature name {} with {} to match {} format'.format(f, alt_features[0], format))
+
+    return features
 
 # find index of array where value is nearest given value
 def find_nearest(array, value):
@@ -1449,6 +1464,7 @@ def main(args, start_time=-1):
         # g.Training not added to simlist since feature sets etc needed for ML_stats not available
     else:
         if CLFid == g.RF:
+            features = check_features(args.ft, data_train, format=train_format)
             _result = build_RF_classifier(data_train, args.nclass, args.ft, args.nc, alltypes_colnames[g.Training],
                                           type_colnames=type_colnames, start_time=start_time,
                                          ) 
