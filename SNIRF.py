@@ -1426,10 +1426,12 @@ def main(args, start_time=-1):
                     typekey = g.generic_feature_names['sim_type'][train_format]
                     withcut = (data_train[typekey] == int(withhold))
                     data_train = data_train[~withcut]
+                    withinfo='type'
                 elif len(withhold) == 3: # 3-digit argument is a template
                     tempkey = g.generic_feature_names['sim_template'][train_format]
                     withcut = (data_train[tempkey] == int(withhold))
                     data_train = data_train[~withcut]
+                    withinfo='template'
                 print('Withholding {} {} from training sample'.format(withinfo, withhold))
                 print('Found {} matches in training data'.format(np.count_nonzero(withcut)))
                 print('Length of training data after witholding cut: {}'.format(len(data_train)))
