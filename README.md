@@ -13,16 +13,19 @@ The package consists of 3 modules:
 
 Many command-line options are available.
 
-**To get help:
+**To get help:  
 python ./SNIRF.py -h**
 
+The above command generates the following output:
 usage: SNIRF.py [**-h**]   
                 [**--ft** [features ...]]  
                 [**--nc** n_cores]                                                                                      
-                [--eff [Fix_eff ...]]  
-                [--nclass NCLASS]                                                                                          
-                [--train TRAIN] [--train_format {txt,FITRES,csv}]                                                                                        
-                [--validation VALIDATION] [--test TEST]                                                                                                  
+                [**--eff** [Fix_eff ...]]  
+                [**--nclass** NCLASS]                                                                                          
+                [**--train** TRAIN] 
+                [**--train_format** {txt,FITRES,csv}]                                                                                        
+                [**--validation** VALIDATION]
+                [**--test** TEST]                                                                                                  
                 [--data DATA [DATA ...]] [--spec SPEC]                                                                                                   
                 [--alltypes_colname_spec ALLTYPES_COLNAME_SPEC] [--phot PHOT]                                                                          
                 [--spec_nofp SPEC_NOFP]                                                                                                                
