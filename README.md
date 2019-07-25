@@ -1,5 +1,7 @@
 # Supernova Identification with Random Forest (SNIRF)
 
+## Code Overview
+
 **SNIRF.py performs photometric classification using a
 Random-Forest machine-learing algorithm. It builds and tests the
 classifier using simulated data. The user can supply additional data
@@ -7,14 +9,15 @@ files which will be classified by the code. The code saves the
 classifications in auxiliary text files.**
 
 The package consists of 3 modules:
-- SNIRF.py (builds and runs the classifier; outputs results)
+- SNIRF.py (executable script to build and run the classifier and outputs results)
 - ML_globals.py (contains definitions of global constants and functions)
 - ML_plots.py (optional plotting code that makes a variety of plots)
 
 Many command-line options are available.
 
-**To get help:  
-python ./SNIRF.py -h**
+## Command-Line Options
+  
+**python ./SNIRF.py -h** prints out the list of available features with a brief description of the options
 
 The above command generates the following output:  
 usage: SNIRF.py [**-h**]   
@@ -22,11 +25,12 @@ usage: SNIRF.py [**-h**]
                 [**--nc** n_cores]                                                                                      
                 [**--eff** [Fix_eff ...]]  
                 [**--nclass** NCLASS]                                                                                          
-                [**--train** TRAIN] 
-                [**--train_format** {txt,FITRES,csv}]                                                                                        
-                [**--validation** VALIDATION]
+                [**--train** TRAIN]   
+                [**--train_format** {txt,FITRES,csv}]                                                                                          
+                [**--validation** VALIDATION]  
                 [**--test** TEST]                                                                                                  
-                [--data DATA [DATA ...]] [--spec SPEC]                                                                                                   
+                [--data DATA [DATA ...]]   
+                [--spec SPEC]                                                                                                    
                 [--alltypes_colname_spec ALLTYPES_COLNAME_SPEC] [--phot PHOT]                                                                          
                 [--spec_nofp SPEC_NOFP]                                                                                                                
                 [--user_data USER_DATA [USER_DATA ...]]                                                                                                
