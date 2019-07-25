@@ -15,14 +15,17 @@ The package consists of 3 modules:
 - SNIRF.py (executable script to build and run the classifier and outputs results)
 - ML_globals.py (contains definitions of global constants and functions)
 - ML_plots.py (optional plotting code that makes a variety of plots)
-Many command-line options are available.
+
+### Usage
+**python SNIRF.py [command-line options]
 
 ### Command-Line Options
+Many command-line options are available.  
   
-**python ./SNIRF.py -h** prints out the list of available features with a brief description of the options
-
-The above command generates the following output:  
-usage: SNIRF.py [**-h**]   
+**python SNIRF.py -h** prints out the list of available options with a brief description of each.
+ 
+ Command-line options:  
+                [**-h**]   
                 [**--ft** features [features ...]]  
                 [**--nc** n_cores]                                                                                      
                 [**--eff** Fix_eff [Fix_eff ...]]  
@@ -64,16 +67,22 @@ usage: SNIRF.py [**-h**]
                 [**--type_labels TYPE_LABELS** [TYPE_LABELS ...]]                                                                                          
                 [**--type_values TYPE_VALUES** [TYPE_VALUES ...]]  
                 [**--cv**]                                                                                   
-                [--sample {t,v,b}] [--niter {1,2,3,4,5,6,7,8,9,10}]                                                                                    
-                [--testsize TESTSIZE] [--nfolds NFOLDS] [--pc]                                                                                         
-                [--purities PURITIES [PURITIES ...]]                                                                                                   
-                [--withhold types/templates [types/templates ...]] [--prvar]                                                                           
-                [--Bazincuts {train,plots,off}] [--noBazinparcuts]                                                                                     
-                [--Bazinpar_max BAZINPAR_MAX [BAZINPAR_MAX ...]]                                                                                       
-                [--Bazinpar_min BAZINPAR_MIN [BAZINPAR_MIN ...]]                                                                                       
-                [--Bazinerrcuts]                                                                                                                       
-                [--Bazinerr_max BAZINERR_MAX [BAZINERR_MAX ...]] [--H0 H0]                                                                             
-                [--OmegaM OMEGAM]                                                                                                                      
+                [**--sample** {t,v,b}]  
+                [**--niter** {1,2,3,4,5,6,7,8,9,10}]                                                                                    
+                [**--testsize** TESTSIZE]  
+                [**--nfolds** NFOLDS] 
+                [**--pc**]                                                                                         
+                [**--purities** PURITIES [PURITIES ...]]                                                                                                   
+                [**--withhold** types/templates [types/templates ...]]  
+                [**--prvar**]                                                                           
+                [**--Bazincuts** {train,plots,off}]  
+                [**--noBazinparcuts**]                                                                                     
+                [**--Bazinpar_max** BAZINPAR_MAX [BAZINPAR_MAX ...]]                                                                                       
+                [**--Bazinpar_min** BAZINPAR_MIN [BAZINPAR_MIN ...]]                                                                                       
+                [**--Bazinerrcuts**]                                                                                                                       
+                [**--Bazinerr_max** BAZINERR_MAX [BAZINERR_MAX ...]]  
+                [**--H0** H0]                                                                             
+                [**--OmegaM** OMEGAM]                                                                                                                      
 
 This script uses a machine learning (ML) algorithm to train a photometric
 classifier into classes {Ia|CC or Ia|Ibc|II or I|II->Ia|Ibc}. Select Random
