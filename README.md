@@ -16,11 +16,14 @@ Many command-line options are available.
 **To get help:
 python ./SNIRF.py -h
 
-usage: SNIRF.py [-h] [--ft features [features ...]] [--nc n_cores]                                                                                     
-                [--eff Fix_eff [Fix_eff ...]] [--nclass NCLASS]                                                                                        
-                [--train TRAIN] [--train_format {txt,FITRES,csv}]                                                                                      
-                [--validation VALIDATION] [--test TEST]                                                                                                
-                [--data DATA [DATA ...]] [--spec SPEC]                                                                                                 
+usage: SNIRF.py [-h]   
+                [--ft features [features ...]]  
+                [--nc n_cores]                                                                                      
+                [--eff Fix_eff [Fix_eff ...]]  
+                [--nclass NCLASS]                                                                                          
+                [--train TRAIN] [--train_format {txt,FITRES,csv}]                                                                                        
+                [--validation VALIDATION] [--test TEST]                                                                                                  
+                [--data DATA [DATA ...]] [--spec SPEC]                                                                                                   
                 [--alltypes_colname_spec ALLTYPES_COLNAME_SPEC] [--phot PHOT]                                                                          
                 [--spec_nofp SPEC_NOFP]                                                                                                                
                 [--user_data USER_DATA [USER_DATA ...]]                                                                                                
