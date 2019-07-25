@@ -1,22 +1,21 @@
-# ML-SN-Classifier
-Machine-Learning Algorithm for Supernova Calssification
+# Supernova Identification with Random Forest (SNIRF)
 
-SNIRF.py performs photometric classification using a
+**SNIRF.py performs photometric classification using a
 Random-Forest machine-learing algorithm. It builds and tests the
 classifier using simulated data. The user can supply additional data
 files which will be classified by the code. The code saves the
-classifications in auxiliary text files.
+classifications in auxiliary text files.**
 
 The package consists of 3 modules:
-SNIRF.py (builds and runs the classifier; outputs results)
-ML_globals.py (contains definitions of global constants and functions)
-ML_plots.py (optional plotting code that makes a variety of plots)
+- SNIRF.py (builds and runs the classifier; outputs results)
+- ML_globals.py (contains definitions of global constants and functions)
+- ML_plots.py (optional plotting code that makes a variety of plots)
 
 Many options are available.
-To get help:
-python ./SNIRF.py -h  (standard argparse implementation)
+**To get help:
+python ./SNIRF.py -h
 
-This gives the following output:
+:
 usage: SNIRF.py [-h] [--ft features [features ...]] [--nc n_cores]                                                                                     
                 [--eff Fix_eff [Fix_eff ...]] [--nclass NCLASS]                                                                                        
                 [--train TRAIN] [--train_format {txt,FITRES,csv}]                                                                                      
