@@ -17,11 +17,10 @@ The package consists of 3 modules:
 - ML_plots.py (optional plotting code that makes a variety of plots)
 
 ### Usage
-**python SNIRF.py [command-line options]
+**python SNIRF.py [command-line options]**
 
 ### Command-Line Options
 Many command-line options are available.  
-  
 **python SNIRF.py -h** prints out the list of available options with a brief description of each.
  
  Command-line options:  
@@ -91,7 +90,7 @@ Forest features to use.
 optional arguments:
   -h, --help            show this help message and exit
   --ft features [features ...]                         
-                        Choose SN-type features to use for classification.
+        Choose SN-type features to use for classification.
                         List them (space-separated) and select from: {c, x0,
                         x1, t0, z, chi2, fit_pr, gpeak, rpeak, ipeak, zpeak,
                         ra, dec, grpeak_m, ripeak_m, izpeak_m, grpeak_s,    
