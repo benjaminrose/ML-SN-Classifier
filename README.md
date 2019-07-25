@@ -4,7 +4,7 @@
 
 **SNIRF.py performs photometric classification using a
 Random-Forest machine-learing algorithm. It builds and tests the
-classifier using simulated data. The user can supply additional data
+classifier using user-supplied training and test data. The user can supply additional data
 files which will be classified by the code. The code saves the
 classifications in auxiliary text files.**
 
@@ -12,7 +12,6 @@ The package consists of 3 modules:
 - SNIRF.py (executable script to build and run the classifier and outputs results)
 - ML_globals.py (contains definitions of global constants and functions)
 - ML_plots.py (optional plotting code that makes a variety of plots)
-
 Many command-line options are available.
 
 ## Command-Line Options
