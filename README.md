@@ -14,12 +14,12 @@ The package consists of 3 modules:
 Many command-line options are available.
 
 **To get help:
-python ./SNIRF.py -h
+python ./SNIRF.py -h**
 
-usage: SNIRF.py [-h]   
-                [--ft features [features ...]]  
-                [--nc n_cores]                                                                                      
-                [--eff Fix_eff [Fix_eff ...]]  
+usage: SNIRF.py [**-h**]   
+                [**--ft** [features ...]]  
+                [**--nc** n_cores]                                                                                      
+                [--eff [Fix_eff ...]]  
                 [--nclass NCLASS]                                                                                          
                 [--train TRAIN] [--train_format {txt,FITRES,csv}]                                                                                        
                 [--validation VALIDATION] [--test TEST]                                                                                                  
