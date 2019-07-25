@@ -16,7 +16,7 @@ Many command-line options are available.
 **To get help:  
 python ./SNIRF.py -h**
 
-The above command generates the following output:
+The above command generates the following output:  
 usage: SNIRF.py [**-h**]   
                 [**--ft** [features ...]]  
                 [**--nc** n_cores]                                                                                      
