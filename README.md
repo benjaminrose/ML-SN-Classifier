@@ -84,14 +84,14 @@ Many command-line options are available.
                 [**--OmegaM** OMEGAM]                                                                                                                      
 
 This script uses a machine learning (ML) algorithm to train a photometric
-classifier into classes  
-..{Ia|CC or Ia|Ibc|II or I|II->Ia|Ibc}. 
-Select Random Forest features to use.                                                    
+classifier into classes   
+{Ia|CC or Ia|Ibc|II or I|II->Ia|Ibc}.   
+Select Random Forest features to use:                                                      
 
-optional arguments:
-  -h, --help            show this help message and exit  
-  --ft features [features ...]                         
-        Choose SN-type features to use for classification.  
+**optional arguments**:
+  **-h, --help**            show this help message and exit  
+  **--ft** features [features ...]                           
+        Choose SN-type features to use for classification.    
                         List them (space-separated) and select from: {c, x0,
                         x1, t0, z, chi2, fit_pr, gpeak, rpeak, ipeak, zpeak,
                         ra, dec, grpeak_m, ripeak_m, izpeak_m, grpeak_s,    
@@ -116,19 +116,19 @@ optional arguments:
                         ['PKMJDerr', 't0_err'], chi2, fit_pr, mu, muerror,    
                         snr1, snr2, snr3, sim_type, sim_nonIa, sim_mu, x0_err,
                         x1_err, c_err} (default: ['fit_pr', 'x1'])            
-  --nc n_cores          Number of cores to use for parallelization (default: 4)                                                    
-  --eff Fix_eff [Fix_eff ...]                                                 
-                        Efficiencies at which to evaluate purity (default:[0.95])                                               
+  --nc n_cores          Number of cores to use for parallelization (default: 4)                                                      
+  --eff Fix_eff [Fix_eff ...]                                                   
+                        Efficiencies at which to evaluate purity (default:[0.95])                                                 
   --nclass NCLASS       Number of classes used in classifier (2=Ia/CC,        
                         3=Ia/Ibc/II,-2=2x2 training: 2-stage--2-way           
                         classification with I/II -> Ia/Ibc) (default: 3)      
   --train TRAIN         Filename for training (default:                       
                         DES_training_SNR550.txt)                              
-  --train_format {txt,FITRES,csv}                                             
-                        Format of training data (default: txt)                
-  --validation VALIDATION                                                     
+  --train_format {txt,FITRES,csv}                                               
+                        Format of training data (default: txt)                  
+  --validation VALIDATION                                                       
                         Filename for validation; set to null to skip (default:
-                        '')                                                   
+                        '')                                                     
   --test TEST           Filename for test (skip if set to "") (default:       
                         DES_test_SNR550.txt)                                  
   --data DATA [DATA ...]                                                      
