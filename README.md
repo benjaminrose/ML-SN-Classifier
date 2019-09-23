@@ -1,56 +1,87 @@
 # ML-SN-Classifier
-Machine-Learning Algorithm for Supernova Calssification
+Machine-Learning Codes for Supenova Classification
 
-SNIRF.py performs photometric classification using a
+## Supernova Identification with Random Forest (SNIRF)
+
+### Code Overview
+
+**SNIRF.py performs photometric classification using a
 Random-Forest machine-learing algorithm. It builds and tests the
-classifier using simulated data. The user can supply additional data
+classifier using user-supplied training and test data. The user can supply additional data
 files which will be classified by the code. The code saves the
-classifications in auxiliary text files.
+classifications in auxiliary text files.**
 
 The package consists of 3 modules:
-SNIRF.py (builds and runs the classifier; outputs results)
-ML_globals.py (contains definitions of global constants and functions)
-ML_plots.py (optional plotting code that makes a variety of plots)
+- SNIRF.py (executable script to build and run the classifier and outputs results)
+- ML_globals.py (contains definitions of global constants and functions)
+- ML_plots.py (optional plotting code that makes a variety of plots)
 
-Many options are available.
-To get help:
-python ./SNIRF.py -h  (standard argparse implementation)
+### Usage
+**python SNIRF.py [command-line options]**
 
-This gives the following output:
-usage: SNIRF.py [-h] [--ft features [features ...]] [--nc n_cores]                                                                                     
-                [--eff Fix_eff [Fix_eff ...]] [--nclass NCLASS]                                                                                        
-                [--train TRAIN] [--train_format {txt,FITRES,csv}]                                                                                      
-                [--validation VALIDATION] [--test TEST]                                                                                                
-                [--data DATA [DATA ...]] [--spec SPEC]                                                                                                 
-                [--alltypes_colname_spec ALLTYPES_COLNAME_SPEC] [--phot PHOT]                                                                          
-                [--spec_nofp SPEC_NOFP]                                                                                                                
-                [--user_data USER_DATA [USER_DATA ...]]                                                                                                
-                [--user_alltypes_colnames USER_ALLTYPES_COLNAMES [USER_ALLTYPES_COLNAMES ...]]                                                         
-                [--filedir FILEDIR] [--store] [--restore] [--use_filenames]                                                                            
-                [--pklfile PKLFILE] [--pklformat {txt,FITRES,csv}]                                                                                     
-                [--train_only] [--done_file DONE_FILE] [--filestr FILESTR]                                                                             
-                [--format FORMAT] [--commit_hash_path COMMIT_HASH_PATH]                                                                                
-                [--plots {,Performance,SALT,Hubble,Error,Color,Magnitude,Bazin} [{,Performance,SALT,Hubble,Error,Color,Magnitude,Bazin} ...]]          
-                [--weights WEIGHTS]                                                                                                                    
-                [--sim {Training,Validation} [{Training,Validation} ...]]                                                                              
-                [--totals] [--save {Ia,CC,All} [{Ia,CC,All} ...]]                                                                                      
-                [--user_colors USER_COLORS [USER_COLORS ...]]                                                                                          
-                [--user_markers USER_MARKERS [USER_MARKERS ...]] [--minmax]                                                                            
-                [--debug] [--alltypes_colname_train ALLTYPES_COLNAME_TRAIN]                                                                            
-                [--alltypes_colname_validation ALLTYPES_COLNAME_VALIDATION]                                                                            
-                [--alltypes_colname_test ALLTYPES_COLNAME_TEST]                                                                                        
-                [--type_labels TYPE_LABELS [TYPE_LABELS ...]]                                                                                          
-                [--type_values TYPE_VALUES [TYPE_VALUES ...]] [--cv]                                                                                   
-                [--sample {t,v,b}] [--niter {1,2,3,4,5,6,7,8,9,10}]                                                                                    
-                [--testsize TESTSIZE] [--nfolds NFOLDS] [--pc]                                                                                         
-                [--purities PURITIES [PURITIES ...]]                                                                                                   
-                [--withhold types/templates [types/templates ...]] [--prvar]                                                                           
-                [--Bazincuts {train,plots,off}] [--noBazinparcuts]                                                                                     
-                [--Bazinpar_max BAZINPAR_MAX [BAZINPAR_MAX ...]]                                                                                       
-                [--Bazinpar_min BAZINPAR_MIN [BAZINPAR_MIN ...]]                                                                                       
-                [--Bazinerrcuts]                                                                                                                       
-                [--Bazinerr_max BAZINERR_MAX [BAZINERR_MAX ...]] [--H0 H0]                                                                             
-                [--OmegaM OMEGAM]                                                                                                                      
+### Command-Line Options
+Many command-line options are available.  
+**python SNIRF.py -h** prints out the list of available options with a brief description of each.
+ 
+ Command-line options:  
+                [**-h**]   
+                [**--ft** features [features ...]]  
+                [**--nc** n_cores]                                                                                      
+                [**--eff** Fix_eff [Fix_eff ...]]  
+                [**--nclass** NCLASS]                                                                                          
+                [**--train** TRAIN]   
+                [**--train_format** {txt,FITRES,csv}]                                                                                          
+                [**--validation** VALIDATION]  
+                [**--test** TEST]                                                                                                  
+                [**--data** DATA [DATA ...]]   
+                [**-spec** SPEC]                                                                                                    
+                [**--alltypes_colname_spec** ALLTYPES_COLNAME_SPEC]  
+                [**--phot** PHOT]                                                                          
+                [**--spec_nofp** SPEC_NOFP]                                                                                                                
+                [**--user_data** USER_DATA [USER_DATA ...]]                                                                                                
+                [**--user_alltypes_colnames** USER_ALLTYPES_COLNAMES [USER_ALLTYPES_COLNAMES ...]]                                                         
+                [**--filedir** FILEDIR] 
+                [**--store**]
+                [**--restore**]  
+                [**--use_filenames**]                                                                            
+                [**--pklfile** PKLFILE]  
+                [**--pklformat** {txt,FITRES,csv}]                                                                                     
+                [**--train_only**] 
+                [**--done_file** DONE_FILE]  
+                [**--filestr**  FILESTR]                                                                             
+                [**--format** FORMAT]  
+                [**--commit_hash_path** COMMIT_HASH_PATH]                                                                                
+                [**--plots**  {'',Performance,SALT,Hubble,Error,Color,Magnitude,Bazin   [{'',Performance,SALT,Hubble,Error,Color,Magnitude,Bazin} ...]]          
+                [**--weights** WEIGHTS]                                                                                                                    
+                [**--sim** {Training,Validation} [{Training,Validation} ...]]                                                                              
+                [**--totals**] 
+                [**--save** {Ia,CC,All} [{Ia,CC,All} ...]]                                                                                      
+                [**--user_colors** USER_COLORS [USER_COLORS ...]]                                                                                          
+                [**--user_markers** USER_MARKERS [USER_MARKERS ...]]  
+                [**--minmax**]                                                                            
+                [**--debug**]  
+                [**--alltypes_colname_train** ALLTYPES_COLNAME_TRAIN]                                                                            
+                [**--alltypes_colname_validation** ALLTYPES_COLNAME_VALIDATION]                                                                            
+                [**--alltypes_colname_test** ALLTYPES_COLNAME_TEST]                                                                                        
+                [**--type_labels TYPE_LABELS** [TYPE_LABELS ...]]                                                                                          
+                [**--type_values TYPE_VALUES** [TYPE_VALUES ...]]  
+                [**--cv**]                                                                                   
+                [**--sample** {t,v,b}]  
+                [**--niter** {1,2,3,4,5,6,7,8,9,10}]                                                                                    
+                [**--testsize** TESTSIZE]  
+                [**--nfolds** NFOLDS] 
+                [**--pc**]                                                                                         
+                [**--purities** PURITIES [PURITIES ...]]                                                                                                   
+                [**--withhold** types/templates [types/templates ...]]  
+                [**--prvar**]                                                                           
+                [**--Bazincuts** {train,plots,off}]  
+                [**--noBazinparcuts**]                                                                                     
+                [**--Bazinpar_max** BAZINPAR_MAX [BAZINPAR_MAX ...]]                                                                                       
+                [**--Bazinpar_min** BAZINPAR_MIN [BAZINPAR_MIN ...]]                                                                                       
+                [**--Bazinerrcuts**]                                                                                                                       
+                [**--Bazinerr_max** BAZINERR_MAX [BAZINERR_MAX ...]]  
+                [**--H0** H0]                                                                             
+                [**--OmegaM** OMEGAM]                                                                                                                      
 
 This script uses a machine learning (ML) algorithm to train a photometric
 classifier into classes {Ia|CC or Ia|Ibc|II or I|II->Ia|Ibc}. Select Random
@@ -59,7 +90,7 @@ Forest features to use.
 optional arguments:
   -h, --help            show this help message and exit
   --ft features [features ...]                         
-                        Choose SN-type features to use for classification.
+        Choose SN-type features to use for classification.
                         List them (space-separated) and select from: {c, x0,
                         x1, t0, z, chi2, fit_pr, gpeak, rpeak, ipeak, zpeak,
                         ra, dec, grpeak_m, ripeak_m, izpeak_m, grpeak_s,    
