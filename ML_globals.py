@@ -4,7 +4,7 @@ name = 'SNIRF'
 description = 'SN Identification with Random Forest'
 authors = ['Eve Kovacs', 'Steve Kuhlmann', 'Ravi Gupta']
 
-# true types, classified types
+# true types
 SN = 'SN'
 Ia = 'Ia'
 CC = 'CC'
@@ -13,17 +13,19 @@ II = 'II'
 Ib = 'Ib'
 Ic = 'Ic'
 Total = 'Total'
+SNtypes = [Ia, CC]
+CCtypes = [Ibc, II]
+allSNtypes = SNtypes + CCtypes
+
+# classified types
 RF = 'RF'  # Random-Forest
 RFIa = RF + Ia
 RFCC = RF + CC
 RFIbc = RF + Ibc
 RFII = RF + II
 RFTotal = RF + Total
-SNtypes = [Ia, CC]
-CCtypes = [Ibc, II]
-allSNtypes = SNtypes + CCtypes
 
-# true and false
+# true and false for computing PR curves
 T = 'T'
 F = 'F'
 P = 'P'
@@ -44,7 +46,7 @@ RFIITN = RFII + TN
 RFIIFN = RFII + FN
 allTFtypes = [RFIaTP, RFIaFP, RFCCTN, RFCCFN, RFIbcTN, RFIbcFN, RFIITN, RFIIFN]
 
-# data samples
+# data samples (read in as astropy tables)
 Data = 'Data'
 Training = 'Training'
 Validation = 'Validation'
@@ -61,7 +63,7 @@ simulated_keys = ['Training', 'Validation', 'Test']
 # Missing data in Table  
 nodata = -999
 
-# Labels used for new table columns
+# Labels used for new columns in data tables
 _Eff = '_{:0.2f}'
 RFprobability = RF + 'probability'
 MaxProb = 'MaxProb'
@@ -104,7 +106,7 @@ Bazinpar_max = 'Bazinpar_max'
 Bazinpar_min = 'Bazinpar_min'
 Bazinerr_max = 'Bazinerr_max'
 
-# plot groups
+# names for plot groups 
 Performance = 'Performance'
 SALT = 'SALT'
 Hubble = 'Hubble'
@@ -113,7 +115,7 @@ Color = 'Color'
 Magnitude = 'Magnitude'
 Bazin = 'Bazin'
 
-#constants
+#redshift constants
 zlo = 0.0
 zhi = {Training: 1.4, Validation: 1.4, Test:1.4, Data: 1.1}
 
@@ -122,12 +124,11 @@ SUCCESS = 'SUCCESS'
 FAILURE = 'FAILURE'
 EXCEPTION = 'EXCEPTION'
 
-#translation dict for different data formats
-
+# supported input file formats and associated filetypes
 allowed_formats = {'text':['txt'], 'fitres':['FITRES', 'csv']}
-
 default_format = 'text'
 
+# allowed feature names for each file format
 allowed_features = {'text': ['c', 'x0', 'x1', 't0', 'z', 'chi2', 'fit_pr', 'gpeak', 'rpeak', 'ipeak', 'zpeak', 'ra',
                              'dec', 'grpeak_m', 'ripeak_m', 'izpeak_m', 'grpeak_s', 'ripeak_s', 'izpeak_s',
                              'Deltagr', 'Deltari', 'Deltaiz', 'snr1', 'snr2', 'snr3', 't0_err', 'x0_err', 'x1_err',
@@ -143,6 +144,7 @@ allowed_features = {'text': ['c', 'x0', 'x1', 't0', 'z', 'chi2', 'fit_pr', 'gpea
                               'SIMNULL1', 'SIM_RV', 'SIM_x0', 'SIM_mB'],
                     }
 
+#translation dict for data formats; allows mixing of formats between training and test datasets
 alternate_feature_names = {'text': {'snid':'CID', 'z':'zCMB', 't0':'PKMJD', 't0_err':'PKMJDERR', 
                                     'x0_err':'x0ERR', 'x1_err':'x1ERR', 'c_err':'cERR', 
                                     'chi2':'FITCHI2', 'dof':'NDOF', 'mu':'MU', 'muerror': 'MUERR',
@@ -157,24 +159,27 @@ alternate_feature_names = {'text': {'snid':'CID', 'z':'zCMB', 't0':'PKMJD', 't0_
                                     }
                           }
 
+# numerical values for recognized classes; code creates extra data columns if supplied labels differ 
 desired_class_values = {Ia:0, Ib:1, Ic:1, Ibc:1, II:2, CC:1}
 
+# dictionary defining default column names and contents for labeled data for allowed data formats
 data_defaults = {'text':{'alltypes_colname':'type3',
-                         'type_labels':[Ia, II, Ibc, Ib, Ic],
                          'type_values':[[0], [2], [1], [1], [1]],
+                         'type_labels':[Ia, II, Ibc, Ib, Ic],
                          'type_colnames': {'2':'type', '3':'type3', '-2':['type2x2','type']},
-                         'alltypes_colname_default':'type3',
                          'alltypes_available':True,
+                         'alltypes_colname_default':'type3',
                         },
                  'fitres':{'alltypes_colname':'TYPE',
-                           'type_labels':[Ia],
                            'type_values':[[1, 101]],
+                           'type_labels':[Ia],
                            'type_colnames': {'2':'type', '3':'type3', '-2':['type2x2','type']}, #create on the fly
-                           'alltypes_colname_default':'TYPE',  #only binary typing available
                            'alltypes_available':False,
+                           'alltypes_colname_default':'TYPE',  #only binary typing available
                           }
                 }
 
+# translation dictionary for generic feature names used in code  
 generic_feature_names = {'z':{'text':'z', 'fitres':'zCMB'},
                          'snrmx':{'text':'snr1', 'fitres':'SNRMAX1'},
                          'sim_type':{'text':'sim_type', 'fitres':'SIM_TYPE_INDEX'},
@@ -183,6 +188,7 @@ generic_feature_names = {'z':{'text':'z', 'fitres':'zCMB'},
                          'mu':{'text':'mu','fitres':'MU'},
                 } 
 
+# dictionary of type <-> template number correspondence
 allowed_templates = {'2P':['20'], '2N':['21'], '2L':['22'], '1b':['32'], '1bc':['33'],
                      'IIN':['206', '209'],
                      'IIL':['002'], 

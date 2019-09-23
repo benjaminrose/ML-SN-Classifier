@@ -231,3 +231,48 @@ optional arguments:
                         t_rise_err, C_err] (default: [100, 50, 100, 50, 100])
   --H0 H0               Value of H0 (default: 68.62)
   --OmegaM OMEGAM       Value of OmegaM (default: 0.301)
+
+
+ML_globals.py contains the definitions of global constants used
+throughout the code.  The code classifies SNe in either binary (Ia or CC)
+or tertiary (Ia, Ibc, or II) mode, corresponding to the user choice 
+--nclass 2 or --nclass 3, respectively. 
+
+Two formats are supported for the user-supplied input data, which are read in
+as astropy tables: 
+1) text file with a header that labels columns of data, 
+2) fitres file (typically output from SNANA).  
+
+ML_globals.py documents the default formats for these files. User
+options are available to change some of these default values (see
+above).  The most important definitions are:
+
+allowed_features: dictionary with list of allowed feature names for each allowed format
+data_defaults: dictionary with information about how classes are labeled for each allowed format
+allowed_templates: dictionary with list of templates used to simulate each class in the data
+
+The contents of allowed_features and allowed_templates should be self-explanatory.
+The following keys in the data_defaults dictionary describe the labels used 
+for the various classes contained in user-supplied labeled data. (These defaults
+can be changed on the fly).
+
+alltypes_colname: name of data column containing the labels for the class (type) of each object
+type_values: value (usually integer) given to each labeled class
+type_labels: labels (Ia, Ibc, II, CC) corresponding to each value in type_values
+
+The information in the following keys is used internally in the code.
+type_colnames: name of column containing labels for different values of nclass (2, 3, -2);
+	       generated on the fly (if possible) if not available in data file
+alltypes_available: True (False), if labels (do not) differentiate between classes of CC SNe
+
+
+In general, if your file format/variable names are different from
+those listed in the above dictionaries, you will need to make changes
+to ML_globals.py to get the code to run successfully.  New feature
+names should be added to the list appropriate to your file format in
+allowed_features.  Although it is possible to change the defaults in
+data_defaults by supplying user options, it will be more convenient to
+make the appropriate changes to the data_defaults dictionary by
+modifying the entries for the keys alltypes_colname and type_values to
+match your labeled data.
+
