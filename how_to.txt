@@ -15,7 +15,7 @@ To get help:
 python ./SNIRF.py -h  (standard argparse implementation)
 
 Examples of various code options for txt format:
-
+------------------------------------------------
 python ./SNIRF.py --ft x1 c z t0_err x1_err c_err --nclass 3 --eff 0.85 --filedir evk --data Spec 
 
 python ./SNIRF.py --ft x1 c z --nclass 2 --eff 0.8 0.9 --filedir evk --user_data TestForEve.csv --user_alltypes_colname spec_eval
@@ -28,8 +28,15 @@ python ./SNIRF.py --ft x1 c z --nclass 2  --filedir evk --pklfile mypkl --store
 
 python ./SNIRF.py --ft x1 c z --nclass 2 --eff 0.8 --filedir evk --pklfile mypkl --restore --pklformat txt
 
-Examples of various code options for fitres format:
+python ./SNIRF.py --ft x1 c z t0_err x1_err c_err Bazin_r_t_fall Bazin_r_t_rise --nclass 3 --eff 0.85 --data Spec --plots Performance SALT Hubble Error Color Magnitude Bazin --filestr jc --filedir jc
 
+python ./SNIRF.py --ft x1 c z t0_err x1_err c_err --nclass 3 --eff 0.85 --data Phot --plots Performance --filestr sk --filedir sk
+
+python ./SNIRF.py --ft x1 c z t0_err x1_err c_err Bazin_r_t_fall Bazin_r_t_rise --nclass 2 --eff 0.85 --data Phot --plots Performance SALT Hubble Error Color Magnitude Bazin --filestr jc --filedir jc
+
+
+Examples of various code options for fitres format:
+---------------------------------------------------
 python ./SNIRF.py --ft FITPROB x1 c PKMJDERR --train FITOPT000.FITRES.gz --nclass 3 --filedir evk --train-only
 
 python ./SNIRF.py --ft FITPROB x1 c PKMJDERR --train FITOPT000.FITRES.gz --nclass 3 --eff 0.85 --filedir evk --test TestForEve.csv
