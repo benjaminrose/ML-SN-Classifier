@@ -84,8 +84,8 @@ Many command-line options are available.
                 [**--OmegaM** OMEGAM]                                                                                                                      
 
 This script uses a machine learning (ML) algorithm to train a photometric
-classifier into classes {Ia|CC or Ia|Ibc|II or I|II->Ia|Ibc}. Select Random
-Forest features to use.                                                    
+classifier into classes {Ia|CC or Ia|Ibc|II or I|II->Ia|Ibc}. 
+Select Random Forest features to use.                                                    
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -115,11 +115,9 @@ optional arguments:
                         ['PKMJDerr', 't0_err'], chi2, fit_pr, mu, muerror,    
                         snr1, snr2, snr3, sim_type, sim_nonIa, sim_mu, x0_err,
                         x1_err, c_err} (default: ['fit_pr', 'x1'])            
-  --nc n_cores          Number of cores to use for parallelization (default:  
-                        4)                                                    
+  --nc n_cores          Number of cores to use for parallelization (default: 4)                                                    
   --eff Fix_eff [Fix_eff ...]                                                 
-                        Efficiencies at which to evaluate purity (default:    
-                        [0.95])                                               
+                        Efficiencies at which to evaluate purity (default:[0.95])                                               
   --nclass NCLASS       Number of classes used in classifier (2=Ia/CC,        
                         3=Ia/Ibc/II,-2=2x2 training: 2-stage--2-way           
                         classification with I/II -> Ia/Ibc) (default: 3)      
@@ -278,7 +276,7 @@ ML_globals.py documents the default formats for these files. User
 options are available to change some of these default values (see
 above).  The most important definitions are:
 
-allowed_features: dictionary with list of allowed feature names for each allowed format
+**allowed_features: dictionary with list of allowed feature names for each allowed format
 data_defaults: dictionary with information about how classes are labeled for each allowed format
 allowed_templates: dictionary with list of templates used to simulate each class in the data
 
@@ -287,9 +285,9 @@ The following keys in the data_defaults dictionary describe the labels used
 for the various classes contained in user-supplied labeled data. (These defaults
 can be changed on the fly).
 
-alltypes_colname: name of data column containing the labels for the class (type) of each object
-type_values: value (usually integer) given to each labeled class
-type_labels: labels (Ia, Ibc, II, CC) corresponding to each value in type_values
+**alltypes_colname**: name of data column containing the labels for the class (type) of each object
+**type_values**: value (usually integer) given to each labeled class
+**type_labels**: labels (Ia, Ibc, II, CC) corresponding to each value in type_values
 
 The information in the following keys is used internally in the code.
 type_colnames: name of column containing labels for different values of nclass (2, 3, -2);
