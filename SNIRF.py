@@ -1311,6 +1311,8 @@ def exit_code(filename, status=g.SUCCESS, msg='', start_time=-1):
             print('Wrote {}'.format(filename))
     msg = 'Completed with status: {}'.format(status)
     print(msg)
+    if status != g.SUCCESS:   #capture any output
+        sys.stdout.flush()
 
     if status != g.EXCEPTION: # exit without throwing exception
         os._exit(1)
