@@ -1315,7 +1315,7 @@ def exit_code(filename, status=g.SUCCESS, msg='', start_time=-1):
         sys.stdout.flush()
 
     if status != g.EXCEPTION: # exit without throwing exception
-        os._exit(1)
+        os._exit(0)
         
 
 def main(args, start_time=-1):
