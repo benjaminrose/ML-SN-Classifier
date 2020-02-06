@@ -94,6 +94,18 @@ def parse_args(argv):
     # Select number of cores
     parser.add_argument('--nc', type=int, choices=range(1, 8), default=4,
                         help='Number of cores to use for parallelization', metavar='n_cores')
+
+    # Select random-forest parameters
+    parser.add_argument('--n_estimators', type=int, default=100,
+                        help='number of trees in the forest')
+    parser.add_argument('--min_samples_split', type=int, default=5,
+                        help='minimum number of samples required to split an internal node')
+    parser.add_argument('--min_samples_leaf', type=int, default=1,
+                        help='minimum number of samples required to be at a leaf node (after a split)')
+    parser.add_argument('--max_depth', default=0, type=int,
+                        help='maximum depth of the tree: if 0 (->None) nodes are expanded until all leaves are pure'\
+                             ' or contain less than min_samples_split samples')
+    
     # Select efficiency
     parser.add_argument('--eff', nargs='+', type=float, default=[0.95],
                         help='Efficiencies at which to evaluate purity', metavar='Fix_eff')
@@ -595,7 +607,7 @@ def retrieve_commit_hash(path_to_repo):
 
 def build_RF_classifier(data_train, nclass, features, ncores, alltypes_colname, target_class=0,
                         type_colnames=g.data_defaults[g.default_format]['type_colnames'],
-                        dummy=g.nodata, start_time=-1,
+                        dummy=g.nodata, start_time=-1, min_samples_leaf=1, max_depth=None,
                         n_estimators = 100, max_features = 'auto', min_samples_split = 5, criterion = 'entropy'):
 
     print
@@ -603,12 +615,14 @@ def build_RF_classifier(data_train, nclass, features, ncores, alltypes_colname, 
     print('*  BUILDING CLASSIFIER  *')
     print('*************************')
     print('Training with {} features [{}]'.format(len(features), ' '.join(features)))
+    print('Using options:\n n_estimators {}\n min_samples_split {}\n min_samples_leaf {}\n max_depth {}\n'.format(n_estimators, min_samples_split, min_samples_leaf, max_depth))
         
     #min_samples_split = 5  NB: 500 works well for fit_pr alone
     #criterion = 'entropy' or 'gini'
 
     clf = RandomForestClassifier(n_estimators=n_estimators, max_features=max_features, 
-                                 min_samples_split=min_samples_split, criterion=criterion, 
+                                 min_samples_split=min_samples_split, criterion=criterion,
+                                 min_samples_leaf=min_samples_leaf, max_depth=max_depth,
                                  n_jobs=ncores)
 
     ### fit the training data
@@ -1469,8 +1483,14 @@ def main(args, start_time=-1):
     else:
         if CLFid == g.RF:
             features = check_features(args.ft, data_train, format=train_format)
+            min_samples_split = args.min_samples_split
+            min_samples_leaf = args.min_samples_leaf
+            n_estimators = args.n_estimators
+            max_depth = None if args.max_depth==0 else args.max_depth
             _result = build_RF_classifier(data_train, args.nclass, args.ft, args.nc, alltypes_colnames[g.Training],
                                           type_colnames=type_colnames, start_time=start_time,
+                                          min_samples_split=min_samples_split, min_samples_leaf= min_samples_leaf,
+                                          n_estimators=n_estimators, max_depth=max_depth,
                                          ) 
             classifiers, data_train, training_class_values, feature_sets[g.Training] = _result
             if args.store:

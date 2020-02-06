@@ -37,7 +37,7 @@ python ./SNIRF.py --ft x1 c z t0_err x1_err c_err Bazin_r_t_fall Bazin_r_t_rise 
 
 Examples of various code options for fitres format:
 ---------------------------------------------------
-python ./SNIRF.py --ft FITPROB x1 c PKMJDERR --train FITOPT000.FITRES.gz --nclass 3 --filedir evk --train-only
+python ./SNIRF.py --ft FITPROB x1 c PKMJDERR --train FITOPT000.FITRES.gz --nclass 3 --filedir evk --train_only
 
 python ./SNIRF.py --ft FITPROB x1 c PKMJDERR --train FITOPT000.FITRES.gz --nclass 3 --eff 0.85 --filedir evk --test TestForEve.csv
 
