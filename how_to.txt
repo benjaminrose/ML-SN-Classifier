@@ -46,3 +46,13 @@ python ./SNIRF.py --ft FITPROB x1 c x1ERR cERR PKMJDERR --train FITOPT000.FITRES
 python ./SNIRF.py --ft FITPROB x1 c x1ERR cERR PKMJDERR --train FITOPT000.FITRES.gz --nclass 2 --eff 0.85 --filedir evk --test '' --user_data TestForEve.csv --user_alltypes_colname spec_eval
 
 python ./SNIRF.py --ft FITPROB x1 c x1ERR cERR PKMJDERR --train FITOPT000.FITRES.gz --nclass 2 --eff 0.85 --filedir evk --test TestForEve.csv --alltypes_colname_test spec_eval
+
+
+Logfile options
+---------------
+#logfile is written by default to --filedir
+# verbose output
+python ./SNIRF.py --ft FITPROB x1 c PKMJDERR --train FITOPT000.FITRES.gz --nclass 3 --filedir evk --train_only --verbose
+
+# no logfile
+python ./SNIRF.py --ft FITPROB x1 c PKMJDERR --train FITOPT000.FITRES.gz --nclass 3 --filedir evk --train_only --logfile

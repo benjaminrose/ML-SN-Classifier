@@ -582,7 +582,28 @@ def balance_training_set(data, nclass, MLtypes, allclass_values, alltypes_colnam
                          min_train_size=g.min_train_size, force_print=True):
     # numbers of each type
     mask = {}
-    g.printw('This option coming soon\n')
+    print(MLtypes, allclass_values)
+    print(set(data[alltypes_colname]))
+    """
+            for t, v in all_class_values.items():
+                if t in MLtypes:
+                    if len(classifiers) > 1 and n == 0 and t == g.II:   #2-stage                                                                 
+                        masks[g.TrueType][dkey][t] = true_classes != target_class # stage 0 distinguishes type II only                           
+                    elif t not in masks.keys():             #don't overwrite existing key                                                        
+                        masks[g.TrueType][dkey][t] = true_classes == int(v)   #mask for numbers in true class                                    
+
+            if n == len(classifiers) - 1:    #assemble final statistics and print                                                                
+                if g.CC in MLtypes:
+                    masks[g.TrueType][dkey][g.CC] =  true_classes != target_class
+                for t in MLtypes:
+                    g.printw('  True number of {}  = {}'.format(t, np.count_nonzero(masks[g.TrueType][dkey][t])),
+                             force_print=force_print)
+
+
+    """
+    for t in MLtypes:
+        mask[t] = (data[alltypes_colname]==allclass_values[t])
+        g.printw(t, np.count_nonzero(mask[t]), force_print=force_print)
 
     return data
 

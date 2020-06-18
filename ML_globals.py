@@ -189,17 +189,44 @@ generic_feature_names = {'z':{'text':'z', 'fitres':'zCMB'},
                 } 
 
 # dictionary of type <-> template number correspondence
-allowed_templates = {'2P':['20'], '2N':['21'], '2L':['22'], '1b':['32'], '1bc':['33'],
-                     'IIN':['206', '209'],
+allowed_templates = {'2P':['20'], '2N':['21'], '2L':['22'], '2b':['23'], '2PL':['25'],
+                     '1b':['32'], '1c':['33'], '1c-BL':['35'],
+                     'IIN':['206', '209',
+                            '834', '825', '840', '845', '819', '851'],
                      'IIL':['002'], 
                      'IIP':['201', '204', '208', '210', '213', '214', '215', '216', '219', '220', '221', '222',
-                            '223', '224', '225', '226', '227', '228', '229', '230', '231', '232', '233', '235'],
-                     'IIb':['400','401', '402','403'],
-                     'Ib':['103', '104', '105', '202', '203', '212', '234'],
-                     'Ic':['021', '022', '101', '102', '205', '207', '211', '217', '218'],
+                            '223', '224', '225', '226', '227', '228', '229', '230', '231', '232', '233', '235',
+                            '',
+                           ],
+                     'IIb':['400', '401', '402','403',
+                            '830', '829', '822', '847', '865', '849', '850', '848', '832', '859', '804', 
+                           ],
+                     'IIPL':['864', '866', '835', '844', '837', '838', '855', '863', '843', '861', '860', '858',
+                             '857', '856', '852', '839', '801', '802', '867', '824', '808', '811', '831', '817',
+                            ],
+                     'Ib':['103', '104', '105', '202', '203', '212', '234',
+                           '833', '807', '854', '813', '815', '816', '803', '827', '821', '842', '841', '828', '818',
+                          ],
+                     'Ic':['021', '022', '101', '102', '205', '207', '211', '217', '218',
+                           '846', '805', '862', '823', '814', '812', '810',
+                          ],
+                     'Ic-BL':['826', '806', '853', '836', '820', '809',
+                             ],
                      'PEC1A':['502', '503', '506', '509'],
                     }
 
+
+##TODO - add templates with dust
+
+
+################ VARIABLES ############## 
+min_train_size = 3000
+
+################ LOGGING ############## 
+log = '.log'
+logfile = '{}_{}' + log
+logfile_handle = None
+verbose = False
 
 ################ FUNCTIONS ##############
 
@@ -220,3 +247,43 @@ def EffPur(true, predict):
         Eff = float(nodata); Pur = Eff; 
 
     return Eff, Pur, Rem
+
+# Print and/or write to logfile
+def printw(*args, **kwargs): #keywords are fh (file-handle) fn (file-name) mode (for file open) and force_print
+
+    # Check for fh or fn keyword
+    fh = kwargs.get('fh', None)
+    fn = kwargs.get('fn', None)
+    mode = kwargs.get('mode', 'a')
+    if fn is None:
+        fh = logfile_handle if fh is None else fh
+    else:
+        try:
+            fh = open(fn, mode)
+        except BaseException as ex:
+            print('Unable to open file {}', fn)
+            print('    {}'.format(str(ex)))
+            fh = None
+
+    # Check for force_print keyword
+    force_print = kwargs.get('force_print', False)
+
+    #print and write to file                                                                             
+    mystring=' '.join([str(arg) for arg in args])
+
+    if force_print or verbose:
+        print(mystring)
+
+    # write if fh is available
+    if fh is not None:
+        try:
+            fh.write(mystring + '\n')
+        except BaseException as ex:
+            print('Unable to write to file {}', fh.name)
+            print('    {}'.format(str(ex)))
+
+    # clean up
+    if fn is not None:
+        fh.close()
+
+    return
