@@ -15,7 +15,6 @@ from operator import add
 from time import time
 import traceback
 import subprocess
-import matplotlib
 import math as m
 from matplotlib import rc
 from datetime import datetime as datetime
@@ -568,8 +567,10 @@ def create_type_columns(data, nclass, all_class_values, alltypes_colname='type3'
                     for i, (v, c) in enumerate(zip(values, counts)):
                         g.printw('    {} class values set to {}'.format(c, v))
                     if len(counts) != abs(nclass):    # check number of types available
-                            g.printw('    Warning: Unexpected number of types ({}) obtained in column {}'.format(len(counts), cname))
-                            status = not(abort) #reset status if this would be fatal for training 
+                        msg = '    Warning: Number of types ({}) in column {} unsuitable for {}-way training'.format(len(counts),
+                                                                                                                     cname, abs(nclass))
+                        g.printw(msg, force_print=True)
+                        status = not(abort) #reset status if this would be fatal for training 
     except BaseException as ex:
         g.printw('  Unable to read/create labeled column from available data')
         g.printw('    {}'.format(str(ex)))
@@ -578,11 +579,18 @@ def create_type_columns(data, nclass, all_class_values, alltypes_colname='type3'
     return data, status
 
 
-def balance_training_set(data, nclass, MLtypes, allclass_values, alltypes_colname='type3',
+def balance_training_set(data, MLtypes, types_colname='type3',
                          min_train_size=g.min_train_size, force_print=True):
     # numbers of each type
     mask = {}
-    g.printw('This option coming soon\n')
+    g.printw('\n  Balancing training set', force_print=force_print)
+    g.printw('    Initial populations in training set:', force_print=force_print)
+
+    for t in MLtypes:
+        mask[t] = (data[types_colname]== g.desired_class_values[t])
+        g.printw('    {}: {}'.format(t, np.count_nonzero(mask[t])), force_print=force_print)
+
+    g.printw('  Balancing feature coming soon', force_print=force_print)
 
     return data
 
@@ -1380,10 +1388,11 @@ def main(args, start_time=-1):
         timestamp = str(datetime.now().strftime("%Y_%m_%d_%H:%M:%S"))
         g.logfile = os.path.join(args.filedir, g.logfile.format(file_id, timestamp))
         g.logfile_handle = open(g.logfile, 'a')
-        g.printw('Logging to {}'.format(g.logfile), force_print=True)
+        print_heading(version)
+        g.printw('\nLogging to {}\n'.format(g.logfile), force_print=True)
     else:
         g.logfile = None  #suppress logging
-    print_heading(version)
+        print_heading(version)
 
     Fixed_effcy = args.eff  # fix efficiency to selected values
     if len(args.commit_hash_path) > 0:
@@ -1473,6 +1482,7 @@ def main(args, start_time=-1):
         simlist.append(g.Training) 
         
         # Check/create columns required for nclass-way training and reset target_class values as required
+        # This step reformats input data to a uniform format
         data_train, status = create_type_columns(data_train, args.nclass, all_class_values,
                                                  type_colnames=type_colnames, force_print=True,
                                                  alltypes_colname=alltypes_colnames[g.Training],
@@ -1499,10 +1509,14 @@ def main(args, start_time=-1):
                 g.printw('Found {} matches in training data'.format(np.count_nonzero(withcut)), force_print=True)
                 g.printw('Length of training data after witholding cut: {}'.format(len(data_train)), force_print=True)
 
-        # check for balancing and make cuts on training data
+        # check for balancing and make cuts on numbers of types in training data
         if args.balance:
-            data_train = balance_training_set(data_train, args.nclass, MLtypes, all_class_values, force_print=True,
-                                              min_train_size=args.min_train_size)
+            #print(alltypes_colnames, type_colnames)
+            #print(set(data_train[alltypes_colnames[g.Training]]), set(data_train[type_colnames[str(args.nclass)]]))
+            # Overwrite any input values to match defaults (txt format) for running classifier
+            #alltypes_colnames[g.Training] = g.data_defaults[g.default_format]['type_colnames'][str(args.nclass)]
+            data_train = balance_training_set(data_train, MLtypes, types_colname=type_colnames[str(args.nclass)], 
+                                              min_train_size=args.min_train_size, force_print=True)
 
     # Use RF for now (in future may build a loop over classifiers)
     CLFid = g.RF
@@ -1516,7 +1530,7 @@ def main(args, start_time=-1):
         try:
             clf = joblib.load(pklfile)
         except:
-            g.printw('\nUnable to load classifier from pklfile {}'.format(pklfile))
+            g.printw('\nUnable to load classifier from pklfile {}'.format(pklfile), force_print=True)
             exit_code(args.done_file, status=g.FAILURE, start_time=start_time)
 
         classifiers = [clf]
@@ -1735,6 +1749,7 @@ def main(args, start_time=-1):
                 template_info = get_template_statistics(data_this[g.generic_feature_names['sim_template'][format_this]], 
                                                     type_masks, MLtypes, classifications, dkey=dkey)
             else:
+                template_info = {}
                 g.printw('\n  Skipping template statistics: no labels or no template information available')
 
         #write out selected data to astropy table

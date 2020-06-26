@@ -1,6 +1,8 @@
 import os
 import numpy as np
 from operator import add
+import matplotlib
+matplotlib.use('agg')
 from matplotlib import pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.patches import Ellipse
@@ -205,12 +207,12 @@ def bin_data(data, Nbins=None):
     meanX = np.asarray([])
     mask = np.isfinite(data)  # remove nan's and infs
     if (np.sum(mask) < len(data)):
-        print('Warning: data truncated by elements to remove nans and infs'.format(len(data) - np.sum(mask)))
+        g.printw('Warning: data truncated by elements to remove nans and infs'.format(len(data) - np.sum(mask)))
     data = data[mask]
     if (len(data) > 0):
         if (Nbins is None):
             Ndata, bins = np.histogram(data)
-            print('Warning: Nbins not supplied; using default np binning Nbins='.format(Nbins))
+            g.printw('Warning: Nbins not supplied; using default np binning Nbins='.format(Nbins))
         else:
             Ndata, bins = np.histogram(data, bins=Nbins)
         sumX, bins = np.histogram(data, bins=bins, weights=data)
@@ -256,9 +258,8 @@ def getdatabins2d(xdata, ydata, xbinwidth, ybinwidth, xlimits=None, ylimits=None
 
 # print and write to file
 def tee(line, f):
-    print('{}'.format(line))
-    if (f is not None):
-        f.write(line + '\n')
+    g.printw('{}'.format(line), fh=f, force_print=True)
+
     return
 
 
@@ -272,10 +273,10 @@ def get_mask(alldata, varlist, varlabels, cuts={}, ops=[], not_ops=[], mask_id='
         max_values = []
         min_values = []
         if Max not in cuts and Min not in cuts:
-            print('\n  Max and Min values not supplied: skipping {} mask'.format(mask_id))
+            g.printw('\n  Max and Min values not supplied: skipping {} mask'.format(mask_id))
             return mask
         elif len(cuts[Max]) != len(varlist) or len(cuts[Min]) != len(varlist):
-            print('\n  Incorrect number of Min/Max values for {}: skipping {} mask'.format(' '.join(varlist), mask_id))
+            g.printw('\n  Incorrect number of Min/Max values for {}: skipping {} mask'.format(' '.join(varlist), mask_id))
             return mask
         else:
             max_values = cuts[Max]
@@ -351,7 +352,7 @@ def get_mask(alldata, varlist, varlabels, cuts={}, ops=[], not_ops=[], mask_id='
                             else:
                                 tee('    {:10} (feature-name = {}) not available for cut on {}'.format(dkey, var_alt, var), ff)
                     if debug and dkey in mask[key_pass] and np.count_nonzero(mask[key_pass][dkey]) > 0:
-                        print('    Check limits: min/max {} data = {:.4g}, {:.4g}; with cut(s) = {}: min/max = {:.4g}, {:.4g}'.format(dkey,
+                        g.printw('    Check limits: min/max {} data = {:.4g}, {:.4g}; with cut(s) = {}: min/max = {:.4g}, {:.4g}'.format(dkey,
                                    np.min(alldata[dkey][var]), np.max(alldata[dkey][var]), cut,           
                                    np.min(alldata[dkey][var][mask[key_pass][dkey]]),
                                    np.max(alldata[dkey][var][mask[key_pass][dkey]])))
@@ -403,7 +404,7 @@ def truncate_title(dkey, title):
     subtitle = '+ ' + plotlabels[dkey]
     if subtitle in title:
         title = re.sub('\\' + subtitle, '', title)
-        print(title)
+        g.printw(title)
     return title
 
 def plot_types(f, types, xvar, alldata, plotlist=[''], masks={}, weights=True, totals=False, 
@@ -448,7 +449,7 @@ def plot_types(f, types, xvar, alldata, plotlist=[''], masks={}, weights=True, t
         if (len(plotlist) > 1):
             datalist = plotlist[-1] if type(plotlist[-1]) == list else [plotlist[-1]]
     else:
-        print('Invalid plotlist: supply list of dict keys to be plotted:' +\
+        g.printw('Invalid plotlist: supply list of dict keys to be plotted:' +\
               '[g.Test, g.Spec] or [[bytypelist], [datalist]]')
 
     if (len(datalist) > 0):  # plot data
@@ -456,7 +457,7 @@ def plot_types(f, types, xvar, alldata, plotlist=[''], masks={}, weights=True, t
             # print xvar,data,(xvar in alldata[data][type_data].keys())
             if xvar not in alldata[data].colnames or (len(yvar) > 0 and yvar not in alldata[data].colnames):  # make sure data has required variable
                 blurb = 'and/or {} '.format(yvar) if len(yvar) > 0 else ''
-                print("    {} {}not available in {} data".format(xvar, blurb, data))
+                g.printw("    {} {}not available in {} data".format(xvar, blurb, data))
                 title = truncate_title(data, title)
             else:
                 # print 'plotting',var,'in',data
@@ -467,7 +468,7 @@ def plot_types(f, types, xvar, alldata, plotlist=[''], masks={}, weights=True, t
                 else:
                     mask_this = np.ones(len(alldata[data][xvar]), dtype=bool)
                     if type_data != g.Total:                                     # reset if failed to find selected type
-                        print('    {} type not available in {} data: defaulting to Total sample'.format(type_data, data))
+                        g.printw('    {} type not available in {} data: defaulting to Total sample'.format(type_data, data))
                         type_data = g.Total
                 if len(cuts) == 0:
                     datasetx = alldata[data][xvar][mask_this]
@@ -480,17 +481,17 @@ def plot_types(f, types, xvar, alldata, plotlist=[''], masks={}, weights=True, t
                         if len(yvar) > 0:
                             datasety = alldata[data][yvar][mask_this]
                     else:
-                        print("    Skipping {} data {} {}{} plot: no data passing cut".format(data, type_data, xvar, yblurb))
+                        g.printw("    Skipping {} data {} {}{} plot: no data passing cut".format(data, type_data, xvar, yblurb))
                         title = truncate_title(data, title)
                 else:
-                    print("    Skipping {} data {} {}{} plot: no entry in cuts dict".format(data, type_data, xvar, yblurb))
+                    g.printw("    Skipping {} data {} {}{} plot: no entry in cuts dict".format(data, type_data, xvar, yblurb))
                     title = truncate_title(data, title)
                 if (len(datasetx) > 0):
                     if debug:
-                        print('    Plotting {} {} {} data points'.format(len(datasetx), dat, xvar))
+                        g.printw('    Plotting {} {} {} data points'.format(len(datasetx), dat, xvar))
                     if (len(yvar) == 0):
                         if (minmax):
-                            print('    Total {} data: {}; min= {:.4g}, max = {:.4g}'.format(data, xvar, np.min(datasetx),
+                            g.printw('    Total {} data: {}; min= {:.4g}, max = {:.4g}'.format(data, xvar, np.min(datasetx),
                                                                                 np.max(datasetx)))
                         if not datapoints   :  #histogram option
                             f.hist(datasetx, bins=bins, color=color[g.Data][data], lw=lw[g.Data])
@@ -502,7 +503,7 @@ def plot_types(f, types, xvar, alldata, plotlist=[''], masks={}, weights=True, t
                                      color=color[g.Data][alt + data], fmt=fill[g.Data][data])
                     elif (len(datasety) > 0):
                         if (minmax):
-                            print('    Total {} data: {}; min= {:.4g}, max = {:.4g}; {}; min= {:.4g}, max = {:.4g}'.format(data, xvar,
+                            g.printw('    Total {} data: {}; min= {:.4g}, max = {:.4g}; {}; min= {:.4g}, max = {:.4g}'.format(data, xvar,
                                   np.min(datasetx), np.max(datasetx), yvar, np.min(datasety), np.max(datasety)))
                         # print "Scattersize",sizes[Scatter]
                         f.scatter(datasetx, datasety, marker=markers[g.Data][data], alpha=alpha[Scatter],
@@ -510,7 +511,7 @@ def plot_types(f, types, xvar, alldata, plotlist=[''], masks={}, weights=True, t
                                     color=color[g.Data][alt + data],
                                     label=' '.join([type_data, lgndlabels[g.Data][data], addlabel]))
                     else:
-                        print("    Skipping {} data {} {}{} scatter plot: no data passing cut".format(data, type_data, xvar, yblurb))
+                        g.printw("    Skipping {} data {} {}{} scatter plot: no data passing cut".format(data, type_data, xvar, yblurb))
 
     if len(bytypelist) > 0:  #plot by type
         for dat in bytypelist:
@@ -519,13 +520,13 @@ def plot_types(f, types, xvar, alldata, plotlist=[''], masks={}, weights=True, t
                 weights = False
                 print ('    Ignoring weights for 2-d plot')
             if len(datdict) == 0:
-                print('    Skipping {} data {} plot: sample not found'.format(dat, plotid))
+                g.printw('    Skipping {} data {} plot: sample not found'.format(dat, plotid))
             else:
                 if xvar not in datdict.colnames:
-                    print('    Skipping {} data {} plot: {} not found'.format(dat, plotid, xvar))
+                    g.printw('    Skipping {} data {} plot: {} not found'.format(dat, plotid, xvar))
                     continue
                 if len(yvar) > 0 and yvar not in datdict.colnames:
-                    print('    Skipping {} data {} plot: {} not found'.format(dat, plotid, yvar))
+                    g.printw('    Skipping {} data {} plot: {} not found'.format(dat, plotid, yvar))
                     continue
                 sweights = datdict[g.Weights] if (weights and g.Weights in datdict.colnames) else None
                 for t in types:
@@ -544,22 +545,22 @@ def plot_types(f, types, xvar, alldata, plotlist=[''], masks={}, weights=True, t
                                 if len(yvar) > 0:
                                     datay = datdict[yvar][mask_this]
                             else:
-                                print("    Skipping {} data {} {}{} plot: no data passing cut".format(dat, t, xvar, yblurb))
+                                g.printw("    Skipping {} data {} {}{} plot: no data passing cut".format(dat, t, xvar, yblurb))
                         else:
-                            print("    Skipping {} data {} {}{} plot: no entry in cuts dict".format(dat, t, xvar, yblurb))
+                            g.printw("    Skipping {} data {} {}{} plot: no entry in cuts dict".format(dat, t, xvar, yblurb))
 
                         if len(datax) > 0 and len(yvar) == 0:  # 1d plot
                             swts = sweights[mask_this] if sweights is not None else None  #set weights for 1-d plot
                             if (minmax):
-                                print('    {} {} data: {}; min= {:.4g}, max = {:.4g}'.format(t, dat, xvar, np.min(datax),
+                                g.printw('    {} {} data: {}; min= {:.4g}, max = {:.4g}'.format(t, dat, xvar, np.min(datax),
                                                                                  np.max(datax)))
                             f.hist(datax, bins=bins, label=lgndlabels[t] + addlabel, color=color[alt + t],
                                      histtype=fill[alt + t], lw=lw[alt + t], weights=swts)
                             if (debug):
-                                print('    Plotting {} {} {} data points for type {}'.format(len(datax), dat, xvar, t))
+                                g.printw('    Plotting {} {} {} data points for type {}'.format(len(datax), dat, xvar, t))
                         elif (len(datax) > 0 and len(datay) > 0):  # 2d plot of types excluding any totals
                             if (minmax):
-                                print('    {} {} data: {}; min= {:.4g}, max = {:.4g}; {}; min= {:.4g}, max = {:.4g}'.format(t,                                                                                            dat, xvar, np.min(datax), np.max(datax), yvar, np.min(datay), np.max(datay)))
+                                g.printw('    {} {} data: {}; min= {:.4g}, max = {:.4g}; {}; min= {:.4g}, max = {:.4g}'.format(t,                                                                                            dat, xvar, np.min(datax), np.max(datax), yvar, np.min(datay), np.max(datay)))
                             f.scatter(datax, datay, marker=markers[alt + t], alpha=alpha[Scatter],
                                             s=sizes[Scatter], color=color[alt + t], label=lgndlabels[t] + addlabel)
                             # contours for Ia only
@@ -570,7 +571,7 @@ def plot_types(f, types, xvar, alldata, plotlist=[''], masks={}, weights=True, t
                                 f.clabel(c1, inline=1, fontsize=8)
                                 c1.collections[0].set_label(lgndlabels[contour])
                     else:
-                        print('    Skipping {} type {} {} plot; {}{}: type not available'.format(dat, t, plotid, xvar, yblurb))
+                        g.printw('    Skipping {} type {} {} plot; {}{}: type not available'.format(dat, t, plotid, xvar, yblurb))
 
     if (len(title) > 0):
         # print "title:",title
@@ -668,7 +669,7 @@ def plot_probabilities(fig, dkey, alldata, MLtypes, type_masks, performance, tar
         f.set_xlim(0, 1.0)
         f.set_title('{}'.format(plotlabels[dkey]), size=sizes[Title])
     else:
-        print('  Skipping Eff-Pur plot for {} data: {} not available'.format(dkey, colname)) 
+        g.printw('  Skipping Eff-Pur plot for {} data: {} not available'.format(dkey, colname)) 
 
     return
 
@@ -902,7 +903,7 @@ def plot_HD(fig, dkey, alldata, types, type_mask, nplot=0, lgnd_title='',
         f.set_xlim(g.zlo, zhi)
         f.set_ylim(mulo, muhi)
     else:
-        print('    Skipping HD plot for {} data, {} or {} not available'.format(dkey, z, mu))
+        g.printw('    Skipping HD plot for {} data, {} or {} not available'.format(dkey, z, mu))
     
     return nplot
 
@@ -1000,7 +1001,7 @@ def plot_SALTcolordiffs(fig, plotlist, alldata, types, type_masks, nplot=0, lgnd
         f.legend(loc='best', fontsize='small', numpoints=1, title=lgnd_title)
 
     if nplot != 3:
-        print('Unexpected plot count: check pagination')
+        g.printw('Unexpected plot count: check pagination')
 
     # use joint mask for other variables
     xlabel = 'Redshift'
@@ -1039,7 +1040,7 @@ def get_valid_keys(alldata, varlist):  #check that alldata has required columns
     
     if len(valid_keys) < len(alldata.keys()):
         missing_keys = [k for k in alldata.keys() if k not in valid_keys]
-        print('\n  Skipping plots for {} data: columns {} not available'.format(' '.join(missing_keys), ' '.join(varlist)))
+        g.printw('\n  Skipping plots for {} data: columns {} not available'.format(' '.join(missing_keys), ' '.join(varlist)))
 
     return valid_keys
 
@@ -1167,10 +1168,10 @@ def rename_features(file_formats, feature_names, data):
                         for alt in alts:
                             if alt in data[dkey].colnames:
                                 data[dkey].rename_column(alt, ft)
-                                print('  Renaming {} to {} for {} data'.format(alt, ft, dkey))
+                                g.printw('  Renaming {} to {} for {} data'.format(alt, ft, dkey))
 
                 if ft not in data[dkey].colnames:
-                    print('  No alternate feature name available for {} in {} data'.format(ft, dkey))
+                    g.printw('  No alternate feature name available for {} in {} data'.format(ft, dkey))
 
     return data
 
@@ -1181,7 +1182,7 @@ def close_page(fig, multiPdf, npage, subpage):
         warnings.simplefilter("ignore")
         multiPdf.savefig(fig)
         
-    print('  Wrote page {}.{}'.format(npage, subpage))
+    g.printw('  Wrote page {}.{}'.format(npage, subpage))
     subpage += 1
     plt.close(fig)
 
@@ -1193,11 +1194,11 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                savetypes=g.Ia, plot_groups=[g.Performance, g.SALT], plot_id='', CLFid=g.RF,
                totals=False, target_class=0, minmax=False, debug=False, file_formats={}):
 
-    print('\n********** STARTING PLOTS **********\n')
+    g.printw('\n********** STARTING PLOTS **********\n', force_print=True)
 
     group_id = ''.join([gr[0:1] for gr in plot_groups])
     pdfname = plot_id + '_' + group_id + '.pdf'
-    print('\nSaving plots to {}'.format(pdfname))
+    g.printw('\nSaving plots to {}'.format(pdfname), force_print=True)
     multiPdf = PdfPages(pdfname)
 
     # setup list of types needed for making plots; include CLF-predicted types
@@ -1251,7 +1252,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
 
         # Performance plots
         if g.Performance in group:
-            print('\nStarting pages {}.x: {} plots'.format(npage, group))
+            g.printw('\nStarting pages {}.x: {} plots'.format(npage, group), force_print=True)
             # need labeled data for probability plots
             dkeys = [k for k in alldata.keys() if g.Training not in k and k in type_masks[g.TrueType].keys()]
             subpage = 1
@@ -1259,7 +1260,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             alldata = rename_features(file_formats, [colname], alldata) #check formats and rename columns
 
             for dkey in dkeys:
-                print('  Plotting {} Data'.format(dkey))
+                g.printw('  Plotting {} Data'.format(dkey), force_print=True)
                 fig = plt.figure(figsize=(figx, figy))
                 plot_probabilities(fig, dkey, alldata, MLtypes_plot, type_masks[g.TrueType], performance[dkey],
                                    target_class=target_class, alltypes_colname=alltypes_colnames[dkey],
@@ -1275,7 +1276,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
 
             # plots for number of SN per template
             if (g.Test in alldata.keys()):
-                print('  Plotting Template Statistics for:')
+                g.printw('  Plotting Template Statistics for:', force_print=True)
                 for cl_id in template_info.keys():
                     cl_label = '{} for {}'.format(classification_labels[cl_id], plotlabels[g.Test]) 
                     subpage = plot_template_statistics(template_info[cl_id], MLtypes, npage, subpage, multiPdf,
@@ -1288,7 +1289,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             
         # SALT plots: compare simulations and data, if any    
         if g.SALT in group:
-            print('\nStarting pages {}.x: {} plots'.format(npage, group))
+            g.printw('\nStarting pages {}.x: {} plots'.format(npage, group), force_print=True)
             subpage = 1
             nplot = 0
             fig = plt.figure(figsize=(figx, figy))
@@ -1296,8 +1297,8 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             for combo in combos:                        # loop over combinations of simulation and data
                 for mkey, tmask in type_masks.items():  # loop over classification options
                     types = MLtypes_plot if g.TrueType in mkey else CLFtypes_plot   # types corresponding to mask choice
-                    print('  Plotting {} Data ({})'.format(' + '.join([c for sublist in combo for c in sublist]),
-                                                           classification_labels[mkey]))
+                    g.printw('  Plotting {} Data ({})'.format(' + '.join([c for sublist in combo for c in sublist]),
+                                                           classification_labels[mkey]), force_print=True)
                     # fp, x1 and c distributions  (3 plots)
                     nplot = plot_SALT(fig, combo, alldata, types, tmask, nplot=nplot, lgnd_title=classification_labels[mkey])
                     fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage)
@@ -1324,7 +1325,8 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                             # code to add contours as follows
                             #clabel = '{} {}'.format(CLFid, g.SN + g.Ia)
                             #clabel = '{} {}'.format(g.TP, clabel) if g.TrueType in type_masks.keys() else clabel 
-                        print('  Plotting x1-c scatter for {} Data ({})'.format(dkey, classification_labels[mkey]))
+                        g.printw('  Plotting x1-c scatter for {} Data ({})'.format(dkey, classification_labels[mkey]),
+                                 force_print=True)
                         nplot = plot_scatter_bytype(fig, dkey, alldata, types, tmask, nplot=nplot, xvar='x1', yvar='c',
                                                     lgnd_title=classification_labels[mkey], contour_label=clabel)
                         fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, 
@@ -1332,7 +1334,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                         if closed:
                             page_total += 1
                     else:
-                        print('  Skipping scatter plots for {}: not available for {} data'.format(mkey, dkey))
+                        g.printw('  Skipping scatter plots for {}: not available for {} data'.format(mkey, dkey))
 
             if not closed:
                 subpage = close_page(fig, multiPdf, npage, subpage)
@@ -1342,7 +1344,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             npage += 1
 
         if g.Hubble in group:
-            print('\nStarting pages {}.x: {} plots'.format(npage, group))
+            g.printw('\nStarting pages {}.x: {} plots'.format(npage, group), force_print=True)
             alldata = rename_features(file_formats, ['z', 'mu'], alldata) #check formats and rename columns
             subpage = 1
             nplot = 0
@@ -1358,9 +1360,9 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                     else:
                         types_this = [CLFtypes_plot, [CLFid + g.Ia + g.TP, CLFid + g.Ia + g.FP]] # TPFP always available in sim
                     for types in types_this:
-                        print('  Plotting {} Data using ({} with types {}) + ({})'.format(' + '.join([c for sublist in pair for c in sublist]),
+                        g.printw('  Plotting {} Data using ({} with types {}) + ({})'.format(' + '.join([c for sublist in pair for c in sublist]),
                                                                              classification_labels[mkey],
-                                                                                  ' '.join(types), type_data))
+                                                                                  ' '.join(types), type_data), force_print=True)
                         # z, HR linear and HR log distributions
                         nplot = plot_hubble(fig, pair, alldata, types, tmask, nplot=nplot, lgnd_title=classification_labels[mkey],
                                             type_data=type_data)
@@ -1383,13 +1385,14 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                             types = [g.Ia]
                         else:
                             types = [g.RFIaTP, g.RFIaFP] if dkey in type_masks[g.TrueType].keys() else [g.RFIa]
-                        print('  Plotting HD for {} Data ({}) using {} type(s)'.format(dkey, classification_labels[mkey], ' + '.join(types)))
+                        g.printw('  Plotting HD for {} Data ({}) using {} type(s)'.format(dkey, classification_labels[mkey], ' + '.join(types)),
+                                 force_print=True)
                         nplot = plot_HD(fig, dkey, alldata, types, tmask, nplot=nplot, lgnd_title=classification_labels[mkey])
                         fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage)
                         if closed:
                             page_total += 1
                     else:
-                        print('  Skipping scatter plots for {}: not available for {} data'.format(mkey, dkey))
+                        g.printw('  Skipping scatter plots for {}: not available for {} data'.format(mkey, dkey))
 
             if not closed:
                 subpage = close_page(fig, multiPdf, npage, subpage)
@@ -1399,7 +1402,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             npage += 1
 
         if g.Error in group:
-            print('\nStarting pages {}.x: {} plots'.format(npage, group))
+            g.printw('\nStarting pages {}.x: {} plots'.format(npage, group), force_print=True)
             subpage = 1
             nplot = 0
             fig = plt.figure(figsize=(figx, figy))
@@ -1407,8 +1410,8 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             for combo in combos:
                 for mkey, tmask in type_masks.items():
                     types = MLtypes_plot if g.TrueType in mkey else CLFtypes_plot   # types corresponding to mask choice
-                    print('  Plotting {} Data ({})'.format(' + '.join([c for sublist in combo for c in sublist]),
-                                                           classification_labels[mkey]))
+                    g.printw('  Plotting {} Data ({})'.format(' + '.join([c for sublist in combo for c in sublist]),
+                                                           classification_labels[mkey]), force_print=True)
                     # t0_err, x1_err and c_err distributions
                     nplot = plot_errors(fig, combo, alldata, types, tmask, nplot=nplot, lgnd_title=classification_labels[mkey])
                     fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage)
@@ -1436,7 +1439,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                             types = MLtypes
                         else:
                             types = TFtypes if dkey in type_masks[g.TrueType].keys() else CLFtypes
-                        print('  Plotting error scatter for {} Data ({})'.format(dkey, classification_labels[mkey]))
+                        g.printw('  Plotting error scatter for {} Data ({})'.format(dkey, classification_labels[mkey]), force_print=True)
                         for xvar, yvar, xmin, xmax, ymin, ymax in zip(xvars, yvars, xmins, xmaxs, ymins, ymaxs):
                             nplot = plot_scatter_bytype(fig, dkey, alldata, types, tmask, nplot=nplot, xvar=xvar, yvar=yvar,
                                                         lgnd_title=classification_labels[mkey], x_min=xmin, x_max=xmax, 
@@ -1446,7 +1449,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                         if closed:
                             page_total += 1
                     else:
-                        print('  Skipping scatter plots for {}: not available for {} data'.format(mkey, dkey))
+                        g.printw('  Skipping scatter plots for {}: not available for {} data'.format(mkey, dkey))
 
             if not closed:
                 subpage = close_page(fig, multiPdf, npage, subpage)
@@ -1456,7 +1459,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             npage += 1
             
         if g.Magnitude in group:
-            print('\nStarting pages {}.x: {} plots'.format(npage, group))
+            g.printw('\nStarting pages {}.x: {} plots'.format(npage, group), force_print=True)
             SALTmagmask = get_mask(alldata, SALTfilters, SALTfilterlabels, mask_id='SALT-peak-magnitude', file_id=plot_id, debug=debug)
 
             subpage = 1
@@ -1469,8 +1472,8 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                     if closed:    #check if new fig needed
                         fig, ax = plt.subplots(nrow8, ncol8, figsize=(figx, figy), sharex='col')
                     types = MLtypes_plot if g.TrueType in mkey else CLFtypes_plot   # types corresponding to mask choice
-                    print('\n  Plotting {} Data ({})'.format(' + '.join([c for sublist in combo for c in sublist]),
-                                                           classification_labels[mkey]))
+                    g.printw('\n  Plotting {} Data ({})'.format(' + '.join([c for sublist in combo for c in sublist]),
+                                                           classification_labels[mkey]), force_print=True)
                     # griz distributions for multi and single band fits (8 plots per page)
                     nplot = plot_magnitudes(ax, combo, alldata, types, tmask, cuts=SALTmagmask, nplot=nplot,
                                             lgnd_title=classification_labels[mkey], plot_offset=plot_offset8, minmax=minmax, debug=debug)
@@ -1488,7 +1491,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             npage += 1
 
         if g.Color in group:
-            print('\nStarting pages {}.x: {} plots'.format(npage, group))
+            g.printw('\nStarting pages {}.x: {} plots'.format(npage, group), force_print=True)
             SALTcolormask = get_mask(alldata, SALTcolors, SALTcolorlabels, mask_id='SALT-color', file_id=plot_id, debug=debug)
             SALTcolordiffmask = get_mask(alldata, SALTcolordiffs, SALTcolordifflabels,
                                          mask_id='SALT-color-difference', file_id=plot_id, debug=debug)
@@ -1500,8 +1503,8 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             for combo in color_combos:
                 for mkey, tmask in type_masks.items():
                     types = MLtypes_plot if g.TrueType in mkey else CLFtypes_plot   # types corresponding to mask choice
-                    print('\n  Plotting {} Data ({})'.format(' + '.join([c for sublist in combo for c in sublist]),
-                                                           classification_labels[mkey]))
+                    g.printw('\n  Plotting {} Data ({})'.format(' + '.join([c for sublist in combo for c in sublist]),
+                                                           classification_labels[mkey]), force_print=True)
                     # gr, ri and iz distributions for multi and single band fits (6 plots)
                     nplot = plot_SALTcolors(fig, combo, alldata, types, tmask, cuts=SALTcolormask, nplot=nplot,
                                             lgnd_title=classification_labels[mkey], minmax=minmax, debug=debug)
@@ -1541,7 +1544,8 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                         else:
                             types = TFtypes if dkey in type_masks[g.TrueType].keys() else CLFtypes
                             clabel = ''
-                        print('  Plotting color-difference scatter for {} Data ({})'.format(dkey, classification_labels[mkey]))
+                        g.printw('  Plotting color-difference scatter for {} Data ({})'.format(dkey, classification_labels[mkey]),
+                                 force_print=True)
                         for (c1, c2) in indexes:
                             nplot = plot_scatter_bytype(fig, dkey, alldata, types, tmask, nplot=nplot, cuts=SALTcolordiffmask[Joint+ne],
                                                         xvar=SALTcolordiffs[c1], yvar=SALTcolordiffs[c2], contour_label=clabel,
@@ -1554,7 +1558,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                             page_total += 1
 
                     else:
-                        print('  Skipping scatter plots for {}: not available for {} data'.format(mkey, dkey))
+                        g.printw('  Skipping scatter plots for {}: not available for {} data'.format(mkey, dkey))
 
             if not closed:
                 subpage = close_page(fig, multiPdf, npage, subpage)
@@ -1562,7 +1566,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             npage += 1
 
         if g.Bazin in group:
-            print('\nStarting pages {}.x: {} plots'.format(npage, group))
+            g.printw('\nStarting pages {}.x: {} plots'.format(npage, group), force_print=True)
             
             bazinvars = bazinpars + bazinerrs #default list of all Bazin features
             Bazincuts = {}
@@ -1583,7 +1587,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
 
             # select good data for Bazin colors (NB: removing -999's alone probably not sufficient to remove flaky fits)
             Bazincolormask = get_mask(alldata, Bazincolors, colorlabels, mask_id='Bazin-color', file_id=plot_id, debug=debug)
-            #print(Bazincolormask.keys()) # 'izBazin!=-999', 'Joint!=', 'riBazin!=-999'..
+            #g.printw(Bazincolormask.keys()) # 'izBazin!=-999', 'Joint!=', 'riBazin!=-999'..
 
             Bazincombinedmask = {}
             for col in colors:  # get joint mask for SN passing filter cuts for each color
@@ -1600,8 +1604,8 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             for combo in bazin_combos:
                 for mkey, tmask in type_masks.items():
                     types = MLtypes_plot if g.TrueType in mkey else CLFtypes_plot   # types corresponding to mask choice
-                    print('\n  Plotting {} Data ({})'.format(' + '.join([c for sublist in combo for c in sublist]),
-                                                           classification_labels[mkey]))
+                    g.printw('\n  Plotting {} Data ({})'.format(' + '.join([c for sublist in combo for c in sublist]),
+                                                           classification_labels[mkey]), force_print=True)
                     for filt in fit_bands:
                         # 5 or 6 plots
                         nplot = plot_Bazinvars(fig, combo, alldata, types, tmask, filt, nplot=nplot, cuts=Bazinfitmask[filt],
@@ -1654,7 +1658,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                             types = MLtypes
                         else:
                             types = TFtypes if dkey in type_masks[g.TrueType].keys() else CLFtypes
-                        print('  Plotting Bazin scatter for {} Data ({})'.format(dkey, classification_labels[mkey]))
+                        g.printw('  Plotting Bazin scatter for {} Data ({})'.format(dkey, classification_labels[mkey]), force_print=True)
                         for filt in fit_bands:
                             for xvar, yvar, xmin, xmax, ymin, ymax in zip(xvars, yvars, xmins, xmaxs, ymins, ymaxs):
                                 xvarname = '_'.join([g.Bazin, filt, xvar])
@@ -1671,7 +1675,7 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                                 page_total += 1
 
                     else:
-                        print('  Skipping scatter plots for {}: not available for {} data'.format(mkey, dkey))
+                        g.printw('  Skipping scatter plots for {}: not available for {} data'.format(mkey, dkey))
 
 
 
@@ -1685,8 +1689,8 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
     multiPdf.close()
     plt.rcParams.update({'figure.max_open_warning': 0})
 
-    print('\nWrote {} with {} pages'.format(pdfname, page_total))
-    print('Completed Successfully')
+    g.printw('\nWrote {} with {} pages'.format(pdfname, page_total), force_print=True)
+    g.printw('Completed Successfully', force_print=True)
 
     return
 
@@ -1761,7 +1765,7 @@ def plot_Bazincolors(fig, plotlist, alldata, types, type_masks, nplot=0, lgnd_ti
 
 def plot_cross_validation():  #TBD
     if (args.cv or args.pc):
-        print('\nStarting page {} (Cross-Validation and Purity)\n'.format(npages))
+        g.printw('\nStarting page {} (Cross-Validation and Purity)\n'.format(npages))
         fig = plt.figure(figsize=(figx, figy))
         if (args.cv):
             minval = np.fmin(np.min(avgskf), np.min(avgss))
@@ -1805,7 +1809,7 @@ def plot_probability_variance(alldata, prvar=False): #TBD
         pr_bins = np.arange(0.0, 1., pr_binwidth)
         pcolors = ['r', 'g', 'blue', 'cyan', 'magenta', 'y', 'orange', 'navy', 'pink', 'purple']
 
-        print('Decision-Tree Probabilities')
+        g.printw('Decision-Tree Probabilities')
         f = fig.add_subplot(plot_offset6 + nplot1)
         f.set_xlabel('Test-Data Decision-Tree SNIa Probability')
         f.set_ylabel('Number')
@@ -1821,7 +1825,7 @@ def plot_probability_variance(alldata, prvar=False): #TBD
                     trueIa)  # include 1.0 in last bin
                 plabel = str(pr_bins[npr]) + '-' + str(pr_bins[npr] + pr_binwidth)
             probdata = pdata[probcut][:, 0]  # find tree probs for this pr_bin for this SN type
-            print('Found {} SNIa matching cuts for pr_bin {}: {}-{} ({} prob. values)'.format(len(probdata),
+            g.printw('Found {} SNIa matching cuts for pr_bin {}: {}-{} ({} prob. values)'.format(len(probdata),
                                                                                               npr, pr_bins[npr], 
                                                                                               pr_bins[npr] + pr_binwidth,
                                                                                               len(probdata.flatten())))
@@ -1846,7 +1850,7 @@ def plot_probability_variance(alldata, prvar=False): #TBD
                         trueCC)  # include 1.0 in last bin
                     plabel = str(pr_bins[npr]) + '-' + str(pr_bins[npr] + pr_binwidth)
                 probdata = pdata[probcut][:, 1]  # find tree probs for this pr_bin for this SN type
-                print('Found {} SNCC matching cuts for pr_bin {}: {}-{} ({} prob. values)'.format(len(probdata),
+                g.printw('Found {} SNCC matching cuts for pr_bin {}: {}-{} ({} prob. values)'.format(len(probdata),
                                                                                                   npr, pr_bins[npr],
                                                                                                   pr_bins[npr] + pr_binwidth,
                                                                                                   len(probdata.flatten())))
@@ -1869,7 +1873,7 @@ def plot_probability_variance(alldata, prvar=False): #TBD
                         trueIbc)  # include 1.0 in last bin
                     plabel = str(pr_bins[npr]) + '-' + str(pr_bins[npr] + pr_binwidth)
                 probdata = pdata[probcut][:, 1]  # find tree probs for this pr_bin for this SN type
-                print('Found {} SNIbc matching cuts for pr_bin {}: {}-{} ({} prob. values)'.format(len(probdata),
+                g.printw('Found {} SNIbc matching cuts for pr_bin {}: {}-{} ({} prob. values)'.format(len(probdata),
                                                                                                   npr, pr_bins[npr],
                                                                                                   pr_bins[npr] + pr_binwidth,
                                                                                                   len(probdata.flatten())))
@@ -1892,7 +1896,7 @@ def plot_probability_variance(alldata, prvar=False): #TBD
                         trueII)  # include 1.0 in last bin
                     plabel = str(pr_bins[npr]) + '-' + str(pr_bins[npr] + pr_binwidth)
                 probdata = pdata[probcut][:, 2]  # find tree probs for this pr_bin for this SN type
-                print('Found {} SNII matching cuts for pr_bin {}: {}-{} ({} prob. values)'.format(len(probdata),
+                g.printw('Found {} SNII matching cuts for pr_bin {}: {}-{} ({} prob. values)'.format(len(probdata),
                                                                                                   npr, pr_bins[npr],
                                                                                                   pr_bins[npr] + pr_binwidth,
                                                                                                   len(probdata.flatten())))
