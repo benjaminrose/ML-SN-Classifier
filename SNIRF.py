@@ -29,7 +29,7 @@ from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.calibration import calibration_curve
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.utils import check_array
-from sklearn.externals import joblib
+import joblib
 # from treeinterpreter import treeinterpreter as ti
 import argparse
 import ML_globals as g
@@ -1491,6 +1491,9 @@ def main(args, start_time=-1):
             g.printw('Aborting...', force_print=True) #force print
             exit_code(args.done_file, status=g.FAILURE, start_time=start_time)
 
+        # Overwrite any input values to match defaults (txt format) for running classifier
+        #alltypes_colnames[g.Training] = g.data_defaults[g.default_format]['type_colnames'][str(args.nclass)]
+
         # check for withholding and make cuts on training data
         if len(args.withhold) > 0 and not args.restore:
             g.printw('Hold-out test: withholding {} from training sample'.format(args.withhold))
@@ -1511,10 +1514,7 @@ def main(args, start_time=-1):
 
         # check for balancing and make cuts on numbers of types in training data
         if args.balance:
-            #print(alltypes_colnames, type_colnames)
             #print(set(data_train[alltypes_colnames[g.Training]]), set(data_train[type_colnames[str(args.nclass)]]))
-            # Overwrite any input values to match defaults (txt format) for running classifier
-            #alltypes_colnames[g.Training] = g.data_defaults[g.default_format]['type_colnames'][str(args.nclass)]
             data_train = balance_training_set(data_train, MLtypes, types_colname=type_colnames[str(args.nclass)], 
                                               min_train_size=args.min_train_size, force_print=True)
 
@@ -1618,6 +1618,7 @@ def main(args, start_time=-1):
     # initialize dicts for ML results for the training, validation and any additional data
     performance = {}
     type_masks = {}
+    template_info = {}
     P_eff_ref = None  # force evaluation of threshold probabilities for Test data
                         
     for dkey  in simlist + datalist:
@@ -1749,7 +1750,6 @@ def main(args, start_time=-1):
                 template_info = get_template_statistics(data_this[g.generic_feature_names['sim_template'][format_this]], 
                                                     type_masks, MLtypes, classifications, dkey=dkey)
             else:
-                template_info = {}
                 g.printw('\n  Skipping template statistics: no labels or no template information available')
 
         #write out selected data to astropy table
