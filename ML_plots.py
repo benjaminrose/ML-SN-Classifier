@@ -1175,6 +1175,9 @@ def rename_features(file_formats, feature_names, data):
 
     return data
 
+def combo_has_data(combo, tmask):
+    dict_lengths = [len(tmask[c[0]]) for c in combo if len(c) > 0 and c[0] in tmask.keys()]
+    return any([l > 0 for l in dict_lengths])
 
 def close_page(fig, multiPdf, npage, subpage):
     fig.tight_layout()
@@ -1252,40 +1255,47 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
 
         # Performance plots
         if g.Performance in group:
-            g.printw('\nStarting pages {}.x: {} plots'.format(npage, group), force_print=True)
-            # need labeled data for probability plots
-            dkeys = [k for k in alldata.keys() if g.Training not in k and k in type_masks[g.TrueType].keys()]
-            subpage = 1
-            colname = 'fit_pr'
-            alldata = rename_features(file_formats, [colname], alldata) #check formats and rename columns
+            if g.TrueType in type_masks.keys():
+                dkeys = [k for k in alldata.keys() if g.Training not in k and k in type_masks[g.TrueType].keys()]
+            else:
+                dkeys = []
+            if dkeys:
+                g.printw('\nStarting pages {}.x: {} plots'.format(npage, group), force_print=True)
+                subpage = 1
+                colname = 'fit_pr'
+                alldata = rename_features(file_formats, [colname], alldata) #check formats and rename columns
 
-            for dkey in dkeys:
-                g.printw('  Plotting {} Data'.format(dkey), force_print=True)
+                for dkey in dkeys:
+                    g.printw('  Plotting {} Data'.format(dkey), force_print=True)
+                    fig = plt.figure(figsize=(figx, figy))
+                    plot_probabilities(fig, dkey, alldata, MLtypes_plot, type_masks[g.TrueType], performance[dkey],
+                                       target_class=target_class, alltypes_colname=alltypes_colnames[dkey],
+                                       colname=colname)
+                    subpage = close_page(fig, multiPdf, npage, subpage)
+                    page_total += 1
+
+                #Summary plot of purity vs effcy
                 fig = plt.figure(figsize=(figx, figy))
-                plot_probabilities(fig, dkey, alldata, MLtypes_plot, type_masks[g.TrueType], performance[dkey],
-                                   target_class=target_class, alltypes_colname=alltypes_colnames[dkey],
-                                   colname=colname)
+                plot_purity_vs_effcy(fig, performance, dkeys=dkeys)
                 subpage = close_page(fig, multiPdf, npage, subpage)
                 page_total += 1
 
-            #Summary plot of purity vs effcy
-            fig = plt.figure(figsize=(figx, figy))
-            plot_purity_vs_effcy(fig, performance, dkeys=dkeys)
-            subpage = close_page(fig, multiPdf, npage, subpage)
-            page_total += 1
+            else:
+                g.printw('\nSkipping {} plots: No labeled data available'.format(group), force_print=True)
 
             # plots for number of SN per template
-            if (g.Test in alldata.keys()):
+            if (g.Test in alldata.keys() and template_info):
                 g.printw('  Plotting Template Statistics for:', force_print=True)
                 for cl_id in template_info.keys():
                     cl_label = '{} for {}'.format(classification_labels[cl_id], plotlabels[g.Test]) 
                     subpage = plot_template_statistics(template_info[cl_id], MLtypes, npage, subpage, multiPdf,
-                                                   CLFid=CLFid, classification_label=cl_label)
-                    page_total += 1
+                                                       CLFid=CLFid, classification_label=cl_label)
+                page_total += 1
 
             #TODO Cross-validation plots
-            
-            npage += 1
+
+            if page_total > 0:
+                npage += 1
             
         # SALT plots: compare simulations and data, if any    
         if g.SALT in group:
@@ -1297,13 +1307,17 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             for combo in combos:                        # loop over combinations of simulation and data
                 for mkey, tmask in type_masks.items():  # loop over classification options
                     types = MLtypes_plot if g.TrueType in mkey else CLFtypes_plot   # types corresponding to mask choice
-                    g.printw('  Plotting {} Data ({})'.format(' + '.join([c for sublist in combo for c in sublist]),
+                    if combo_has_data(combo, tmask):
+                        g.printw('  Plotting {} Data ({})'.format(' + '.join([c for sublist in combo for c in sublist]),
                                                            classification_labels[mkey]), force_print=True)
-                    # fp, x1 and c distributions  (3 plots)
-                    nplot = plot_SALT(fig, combo, alldata, types, tmask, nplot=nplot, lgnd_title=classification_labels[mkey])
-                    fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage)
-                    if closed:
-                        page_total += 1
+                        # fp, x1 and c distributions  (3 plots)
+                        nplot = plot_SALT(fig, combo, alldata, types, tmask, nplot=nplot, lgnd_title=classification_labels[mkey])
+                        fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage)
+                        if closed:
+                            page_total += 1
+                    else:
+                        g.printw('  Skipping {} Data ({}): no available data'.format(' + '.join([c for sublist in combo for c in sublist]),
+                                                           classification_labels[mkey]), force_print=True)
 
             if not closed:
                 subpage = close_page(fig, multiPdf, npage, subpage)
@@ -1315,12 +1329,12 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             fig = plt.figure(figsize=(figx, figy))
             for dkey in alldata.keys():                 # loop over data sets
                 for mkey, tmask in type_masks.items():  # loop over classification options
-                    if dkey in tmask.keys():            # check that mask exists for dataset
+                    if dkey in tmask.keys() and tmask[dkey]:    # check that mask exists for dataset and has contents
                         if g.TrueType in mkey:
                             types = MLtypes
                             clabel = g.SN + g.Ia
                         else:
-                            types = TFtypes if dkey in type_masks[g.TrueType].keys() else CLFtypes
+                            types = TFtypes if g.TrueType in type_masks.keys() and dkey in type_masks[g.TrueType].keys() else CLFtypes
                             clabel = ''  # suppress contours for CLF types
                             # code to add contours as follows
                             #clabel = '{} {}'.format(CLFid, g.SN + g.Ia)
@@ -1359,17 +1373,21 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                             type_data = g.Ia if pair[1][0] in tmask.keys() else g.Total  # if true_types available in data 
                     else:
                         types_this = [CLFtypes_plot, [CLFid + g.Ia + g.TP, CLFid + g.Ia + g.FP]] # TPFP always available in sim
-                    for types in types_this:
-                        g.printw('  Plotting {} Data using ({} with types {}) + ({})'.format(' + '.join([c for sublist in pair for c in sublist]),
-                                                                             classification_labels[mkey],
-                                                                                  ' '.join(types), type_data), force_print=True)
-                        # z, HR linear and HR log distributions
-                        nplot = plot_hubble(fig, pair, alldata, types, tmask, nplot=nplot, lgnd_title=classification_labels[mkey],
-                                            type_data=type_data)
-                        fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage)
-                        if closed:
-                            page_total += 1
-
+                    if combo_has_data(pair, tmask):
+                        for types in types_this:
+                            g.printw('  Plotting {} Data using ({} with types {}) + ({})'.format(' + '.join([c for sublist in pair for c in sublist]),
+                                                                                                 classification_labels[mkey],
+                                                                                                 ' '.join(types), type_data), force_print=True)
+                            # z, HR linear and HR log distributions
+                            nplot = plot_hubble(fig, pair, alldata, types, tmask, nplot=nplot, lgnd_title=classification_labels[mkey],
+                                                type_data=type_data)
+                            fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage)
+                            if closed:
+                                page_total += 1
+                    else:
+                        g.printw('  Skipping {} Data using ({} with types {}) + ({}): no available data'.format(' + '.join([c for sublist in pair for c in sublist]),
+                                                                                                                    classification_labels[mkey],
+                                                                                                                    ' '.join(types), type_data), force_print=True)
             if not closed:
                 subpage = close_page(fig, multiPdf, npage, subpage)
                 page_total += 1
@@ -1380,11 +1398,11 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             fig = plt.figure(figsize=(figx, figy))
             for dkey in alldata.keys():                 # loop over data sets
                 for mkey, tmask in type_masks.items():  # loop over classification options
-                    if dkey in tmask.keys():            # check that mask exists for dataset
+                    if dkey in tmask.keys() and tmask[dkey]:            # check that mask exists for dataset
                         if g.TrueType in mkey:
                             types = [g.Ia]
                         else:
-                            types = [g.RFIaTP, g.RFIaFP] if dkey in type_masks[g.TrueType].keys() else [g.RFIa]
+                            types = [g.RFIaTP, g.RFIaFP] if g.TrueType in type_masks.keys() and dkey in type_masks[g.TrueType].keys() else [g.RFIa]
                         g.printw('  Plotting HD for {} Data ({}) using {} type(s)'.format(dkey, classification_labels[mkey], ' + '.join(types)),
                                  force_print=True)
                         nplot = plot_HD(fig, dkey, alldata, types, tmask, nplot=nplot, lgnd_title=classification_labels[mkey])
@@ -1410,14 +1428,18 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             for combo in combos:
                 for mkey, tmask in type_masks.items():
                     types = MLtypes_plot if g.TrueType in mkey else CLFtypes_plot   # types corresponding to mask choice
-                    g.printw('  Plotting {} Data ({})'.format(' + '.join([c for sublist in combo for c in sublist]),
-                                                           classification_labels[mkey]), force_print=True)
-                    # t0_err, x1_err and c_err distributions
-                    nplot = plot_errors(fig, combo, alldata, types, tmask, nplot=nplot, lgnd_title=classification_labels[mkey])
-                    fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage)
-                    if closed:
-                        page_total += 1
+                    if combo_has_data(combo, tmask):
 
+                        g.printw('  Plotting {} Data ({})'.format(' + '.join([c for sublist in combo for c in sublist]),
+                                                                  classification_labels[mkey]), force_print=True)
+                        # t0_err, x1_err and c_err distributions
+                        nplot = plot_errors(fig, combo, alldata, types, tmask, nplot=nplot, lgnd_title=classification_labels[mkey])
+                        fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage)
+                        if closed:
+                            page_total += 1
+                    else:
+                        g.printw('  Skipping {} Data ({}): no available data'.format(' + '.join([c for sublist in combo for c in sublist]),
+                                                                                     classification_labels[mkey]), force_print=True)
             if not closed:
                 subpage = close_page(fig, multiPdf, npage, subpage)
                 page_total += 1
@@ -1434,11 +1456,11 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             fig = plt.figure(figsize=(figx, figy))
             for dkey in alldata.keys():                 # loop over data sets
                 for mkey, tmask in type_masks.items():  # loop over classification options
-                    if dkey in tmask.keys():            # check that mask exists for dataset
+                    if dkey in tmask.keys() and tmask[dkey]:            # check that mask exists for dataset
                         if g.TrueType in mkey:
                             types = MLtypes
                         else:
-                            types = TFtypes if dkey in type_masks[g.TrueType].keys() else CLFtypes
+                            types = TFtypes if g.TrueType in type_masks.keys() and dkey in type_masks[g.TrueType].keys() else CLFtypes
                         g.printw('  Plotting error scatter for {} Data ({})'.format(dkey, classification_labels[mkey]), force_print=True)
                         for xvar, yvar, xmin, xmax, ymin, ymax in zip(xvars, yvars, xmins, xmaxs, ymins, ymaxs):
                             nplot = plot_scatter_bytype(fig, dkey, alldata, types, tmask, nplot=nplot, xvar=xvar, yvar=yvar,
@@ -1472,15 +1494,20 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                     if closed:    #check if new fig needed
                         fig, ax = plt.subplots(nrow8, ncol8, figsize=(figx, figy), sharex='col')
                     types = MLtypes_plot if g.TrueType in mkey else CLFtypes_plot   # types corresponding to mask choice
-                    g.printw('\n  Plotting {} Data ({})'.format(' + '.join([c for sublist in combo for c in sublist]),
+                    if combo_has_data(combo, tmask):
+
+                        g.printw('\n  Plotting {} Data ({})'.format(' + '.join([c for sublist in combo for c in sublist]),
                                                            classification_labels[mkey]), force_print=True)
-                    # griz distributions for multi and single band fits (8 plots per page)
-                    nplot = plot_magnitudes(ax, combo, alldata, types, tmask, cuts=SALTmagmask, nplot=nplot,
-                                            lgnd_title=classification_labels[mkey], plot_offset=plot_offset8, minmax=minmax, debug=debug)
-                    fig.subplots_adjust(hspace=0)   #remove horizontal space
-                    fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=8, new=False)
-                    if closed:
-                        page_total += 1
+                        # griz distributions for multi and single band fits (8 plots per page)
+                        nplot = plot_magnitudes(ax, combo, alldata, types, tmask, cuts=SALTmagmask, nplot=nplot,
+                                                lgnd_title=classification_labels[mkey], plot_offset=plot_offset8, minmax=minmax, debug=debug)
+                        fig.subplots_adjust(hspace=0)   #remove horizontal space
+                        fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=8, new=False)
+                        if closed:
+                            page_total += 1
+                    else:
+                        g.printw('\n  Skipping {} Data ({}): no available data'.format(' + '.join([c for sublist in combo for c in sublist]),
+                                                           classification_labels[mkey]), force_print=True)
 
             if not closed:
                 subpage = close_page(fig, multiPdf, npage, subpage)
@@ -1503,21 +1530,25 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             for combo in color_combos:
                 for mkey, tmask in type_masks.items():
                     types = MLtypes_plot if g.TrueType in mkey else CLFtypes_plot   # types corresponding to mask choice
-                    g.printw('\n  Plotting {} Data ({})'.format(' + '.join([c for sublist in combo for c in sublist]),
-                                                           classification_labels[mkey]), force_print=True)
-                    # gr, ri and iz distributions for multi and single band fits (6 plots)
-                    nplot = plot_SALTcolors(fig, combo, alldata, types, tmask, cuts=SALTcolormask, nplot=nplot,
-                                            lgnd_title=classification_labels[mkey], minmax=minmax, debug=debug)
-                    fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage)
-                    if closed:
-                        page_total += 1
+                    if combo_has_data(combo, tmask):
+                        g.printw('\n  Plotting {} Data ({})'.format(' + '.join([c for sublist in combo for c in sublist]),
+                                                                    classification_labels[mkey]), force_print=True)
+                        # gr, ri and iz distributions for multi and single band fits (6 plots)
+                        nplot = plot_SALTcolors(fig, combo, alldata, types, tmask, cuts=SALTcolormask, nplot=nplot,
+                                                lgnd_title=classification_labels[mkey], minmax=minmax, debug=debug)
+                        fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage)
+                        if closed:
+                            page_total += 1
 
-                    # color-diff and redshift distributions with cuts (6 plots) 
-                    nplot = plot_SALTcolordiffs(fig, combo, alldata, types, tmask, cuts=SALTcolordiffmask, nplot=nplot,
-                                                lgnd_title=classification_labels[mkey])
-                    fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage)
-                    if closed:
-                        page_total += 1
+                        # color-diff and redshift distributions with cuts (6 plots) 
+                        nplot = plot_SALTcolordiffs(fig, combo, alldata, types, tmask, cuts=SALTcolordiffmask, nplot=nplot,
+                                                    lgnd_title=classification_labels[mkey])
+                        fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage)
+                        if closed:
+                            page_total += 1
+                    else:
+                        g.printw('\n  Skipping {} Data ({}): no available data'.format(' + '.join([c for sublist in combo for c in sublist]),
+                                                                    classification_labels[mkey]), force_print=True)
 
             if not closed:  #close page
                 subpage = close_page(fig, multiPdf, npage, subpage)
@@ -1537,12 +1568,12 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             
             for dkey in valid_keys:                     # loop over data sets
                 for mkey, tmask in type_masks.items():  # loop over classification options
-                    if dkey in tmask.keys():            # check that mask exists for dataset
+                    if dkey in tmask.keys() and tmask[dkey]:            # check that mask exists for dataset
                         if g.TrueType in mkey:
                             types = MLtypes
                             clabel = g.SN + g.Ia
                         else:
-                            types = TFtypes if dkey in type_masks[g.TrueType].keys() else CLFtypes
+                            types = TFtypes if g.TrueType in type_masks.keys() and dkey in type_masks[g.TrueType].keys() else CLFtypes
                             clabel = ''
                         g.printw('  Plotting color-difference scatter for {} Data ({})'.format(dkey, classification_labels[mkey]),
                                  force_print=True)
@@ -1603,35 +1634,39 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
             #for combo in [bazin_combos[0]]:
             for combo in bazin_combos:
                 for mkey, tmask in type_masks.items():
-                    types = MLtypes_plot if g.TrueType in mkey else CLFtypes_plot   # types corresponding to mask choice
-                    g.printw('\n  Plotting {} Data ({})'.format(' + '.join([c for sublist in combo for c in sublist]),
-                                                           classification_labels[mkey]), force_print=True)
-                    for filt in fit_bands:
-                        # 5 or 6 plots
-                        nplot = plot_Bazinvars(fig, combo, alldata, types, tmask, filt, nplot=nplot, cuts=Bazinfitmask[filt],
-                                               lgnd_title=classification_labels[mkey], joint_Pass=joint_Pass,
-                                               minmax=minmax, debug=debug)
-                        fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage,
-                                                               force_close=True)
-                        page_total += 1
+                    if combo_has_data(combo, tmask):                    
+                        types = MLtypes_plot if g.TrueType in mkey else CLFtypes_plot   # types corresponding to mask choice
+                        g.printw('\n  Plotting {} Data ({})'.format(' + '.join([c for sublist in combo for c in sublist]),
+                                                                    classification_labels[mkey]), force_print=True)
+                        for filt in fit_bands:
+                            # 5 or 6 plots
+                            nplot = plot_Bazinvars(fig, combo, alldata, types, tmask, filt, nplot=nplot, cuts=Bazinfitmask[filt],
+                                                   lgnd_title=classification_labels[mkey], joint_Pass=joint_Pass,
+                                                   minmax=minmax, debug=debug)
+                            fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage,
+                                                                   force_close=True)
+                            page_total += 1
 
-                        nplot = plot_Bazinvars(fig, combo, alldata, types, tmask, filt, nplot=nplot, cuts=Bazinfitmask[filt],
-                                               lgnd_title=classification_labels[mkey], joint_Pass=joint_Pass, errors=True,
-                                               minmax=minmax, debug=debug)
-                        fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage,
-                                                               force_close=True)
-                        page_total += 1
+                            nplot = plot_Bazinvars(fig, combo, alldata, types, tmask, filt, nplot=nplot, cuts=Bazinfitmask[filt],
+                                                   lgnd_title=classification_labels[mkey], joint_Pass=joint_Pass, errors=True,
+                                                   minmax=minmax, debug=debug)
+                            fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage,
+                                                                   force_close=True)
+                            page_total += 1
 
                         
-                    # Bazin colors (3 plots each)
-                    nplot = plot_Bazincolors(fig, combo, alldata, types, tmask, nplot=nplot, cuts=Bazincolormask[Joint + ne],
-                                             lgnd_title=classification_labels[mkey], minmax=minmax, debug=debug)
+                        # Bazin colors (3 plots each)
+                        nplot = plot_Bazincolors(fig, combo, alldata, types, tmask, nplot=nplot, cuts=Bazincolormask[Joint + ne],
+                                                 lgnd_title=classification_labels[mkey], minmax=minmax, debug=debug)
                         
-                    nplot = plot_Bazincolors(fig, combo, alldata, types, tmask, nplot=nplot, cuts=Bazincombinedmask,
-                                               lgnd_title=classification_labels[mkey], cut_keys=True, minmax=minmax, debug=debug)
-                    fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage)
-                    if closed:
-                        page_total += 1
+                        nplot = plot_Bazincolors(fig, combo, alldata, types, tmask, nplot=nplot, cuts=Bazincombinedmask,
+                                                 lgnd_title=classification_labels[mkey], cut_keys=True, minmax=minmax, debug=debug)
+                        fig, nplot, subpage, closed = get_next(fig, multiPdf, nplot, npage, subpage, plotsperpage=plotsperpage)
+                        if closed:
+                            page_total += 1
+                    else:
+                        g.printw('\n  Skipping {} Data ({}): no available data'.format(' + '.join([c for sublist in combo for c in sublist]),
+                                                                    classification_labels[mkey]), force_print=True)
 
             if not closed:
                 subpage = close_page(fig, multiPdf, npage, subpage)
@@ -1652,12 +1687,12 @@ def make_plots(MLtypes, alldata, type_masks, Fixed_effcy, performance, alltypes_
                                                                
                 for mkey, tmask in type_masks.items():  # loop over classification options                                                   
 
-                    if dkey in tmask.keys():            # check that mask exists for dataset                                                 
+                    if dkey in tmask.keys() and tmask[dkey]:            # check that mask exists for dataset                                                 
 
                         if g.TrueType in mkey:
                             types = MLtypes
                         else:
-                            types = TFtypes if dkey in type_masks[g.TrueType].keys() else CLFtypes
+                            types = TFtypes if g.TrueType in type_masks.keys() and dkey in type_masks[g.TrueType].keys() else CLFtypes
                         g.printw('  Plotting Bazin scatter for {} Data ({})'.format(dkey, classification_labels[mkey]), force_print=True)
                         for filt in fit_bands:
                             for xvar, yvar, xmin, xmax, ymin, ymax in zip(xvars, yvars, xmins, xmaxs, ymins, ymaxs):
