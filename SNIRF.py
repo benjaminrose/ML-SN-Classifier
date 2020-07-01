@@ -120,7 +120,8 @@ def parse_args(argv):
     parser.add_argument('--balance', action='store_true', default=False,
                         help='Balance training set to equalize number of Ia & CC (2-way) or Ia, CC and Ibc (3-way)',
                        )
-    parser.add_argument('--min_train_size', help='Minimum size for training set', type=int, default=g.min_train_size)
+    parser.add_argument('--min_train_total_size', help='Minimum total size for training set', type=int, default=g.min_train_total_size)
+    parser.add_argument('--max_train_class_size', help='Maximum size for each class in training set', type=int, default=g.max_train_class_size)
 
     # parser.add_argument('--train',default='DES_training_fitprob.txt',help='Filename for training')
     parser.add_argument('--validation', default="''", help='Filename for validation; set to null to skip')
@@ -579,21 +580,79 @@ def create_type_columns(data, nclass, all_class_values, alltypes_colname='type3'
     return data, status
 
 
-def balance_training_set(data, MLtypes, types_colname='type3',
-                         min_train_size=g.min_train_size, force_print=True):
+def balance_training_set(data, MLtypes, types_colname='type3', force_print=True,
+                         min_total_size=g.min_train_total_size, max_class_size=g.max_train_class_size): 
+
     # numbers of each type
-    mask = {}
     g.printw('\n  Balancing training set', force_print=force_print)
     g.printw('    Initial populations in training set:', force_print=force_print)
 
+    masks = {}
+    totals = {}
+    # determine possible balanced sizes
+    min_balanced_size = int(min_total_size/float(len(MLtypes)))
+    # get available numbers
+    min_total = len(data)
+    max_total = 0
     for t in MLtypes:
-        mask[t] = (data[types_colname]== g.desired_class_values[t])
-        g.printw('    {}: {}'.format(t, np.count_nonzero(mask[t])), force_print=force_print)
+        masks[t] = (data[types_colname] == g.desired_class_values[t])
+        totals[t] = np.count_nonzero(masks[t])
+        g.printw('    {}: {}'.format(t, totals[t]), force_print=force_print)
+        min_total = min(min_total, totals[t])
+        max_total = max(max_total, totals[t])
 
-    g.printw('  Balancing feature coming soon', force_print=force_print)
+    total_other = len(data) - max_total  #sum of other types
+    min_balanced_size = min_total if min_total > min_balanced_size else min_balanced_size
 
-    return data
+    # compute target numbers and masks for each type
+    balanced_numbers = get_desired_counts(MLtypes, totals, min_balanced_size, max_total,
+                                          total_other, min_total_size, max_class_size)
+                                          
+    # compute masks to select balanced training for each type for each type
+    balanced_mask = get_balanced_mask(MLtypes, len(data), masks, balanced_numbers)
 
+    g.printw('    Balanced training set contains:', force_print=force_print)
+    for t in MLtypes:
+        new_total = np.count_nonzero(data[types_colname][balanced_mask] == g.desired_class_values[t])
+        g.printw('    {}: {}'.format(t, new_total), force_print=force_print)
+        
+    g.printw('    Total size of balanced training set: {}'.format(np.count_nonzero(balanced_mask)),
+             force_print=force_print)
+
+    return data[balanced_mask]
+
+def get_desired_counts(MLtypes, totals, min_balanced_size, max_total, total_other,
+                       min_total_size, max_class_size):
+
+    balanced_numbers = {}
+    # get size estimates
+    total_size = 0
+    for t in MLtypes:
+        if totals[t] < max_total: #not most prevalent type
+            balanced_numbers[t] = min(totals[t], max_class_size) #accept all
+        else:
+            balanced_numbers[t] = min(totals[t], total_other, max_class_size) #balance sum of other types
+        total_size += balanced_numbers[t]
+
+    # check for minimum size and adjust
+    if total_size < min_total_size:
+        for t in MLtypes:
+            if totals[t] == max_total: #adjust with most numerous type
+                balanced_numbers[t] = min(balanced_numbers[t] + min_total_size - total_size, totals[t]) 
+                    
+
+    return balanced_numbers
+
+def get_balanced_mask(MLtypes, size, masks, balanced_numbers):
+
+    balanced_mask = np.zeros(size, dtype=bool)
+    for t in MLtypes:
+        locs = np.where(masks[t] == True)[0]
+        # select random sample and assign to mask
+        random_locs = np.sort(np.random.choice(locs, size=balanced_numbers[t], replace=False))
+        balanced_mask[random_locs] = True
+
+    return balanced_mask
 
 def get_mask_from_templates(templates, sntypes=[g.Ia], Templates_Ia=[0]):
     
@@ -633,7 +692,7 @@ def retrieve_commit_hash(path_to_repo):
     return subprocess.check_output(cmd, shell=True).strip()
 
 
-def build_RF_classifier(data_train, nclass, features, ncores, alltypes_colname, target_class=0,
+def build_RF_classifier(data_train, nclass, features, ncores, target_class=g.target_class,
                         type_colnames=g.data_defaults[g.default_format]['type_colnames'], force_print=True,
                         dummy=g.nodata, start_time=-1, min_samples_leaf=1, max_depth=None,
                         n_estimators = 100, max_features = 'auto', min_samples_split = 5, criterion = 'entropy'):
@@ -667,7 +726,7 @@ def build_RF_classifier(data_train, nclass, features, ncores, alltypes_colname, 
         g.printw("  Pre-training stage1 classifier:\n set size = {}, \tNumber of Iabc's= {}".format(len(y_pretrain),
                                                                            np.count_nonzero(class_values_pretrain == target_class)))
         clfpre.fit(X_pretrain, class_values_pretrain)
-        cut2 = (data_train[alltypes_colname] != target_class)  # identify type II
+        cut2 = (data_train[colname] != target_class)  # identify type II
         colname = type_colnames[str(nclass)][-1]   #type  column for classifier
         data_train_abc = data_train[~cut2]
         X_train = get_features(features, data_train_abc)  # include only Ia and Ibc
@@ -720,7 +779,7 @@ def get_probabilities(clf, data, feature_values, xtralabel=''):
     
 
 def run_RF_classifier(dkey, classifiers, data, nclass, features, force_print=True, 
-                          method=g.MaxProbClass, target_class=0, dummy=g.nodata):
+                          method=g.MaxProbClass, target_class=g.target_class, dummy=g.nodata):
 
     ### fit the training data
     g.printw('\n  Classifying {} Data'.format(dkey), force_print=force_print)
@@ -755,7 +814,7 @@ def run_RF_classifier(dkey, classifiers, data, nclass, features, force_print=Tru
     return data, feature_set
 
 def get_ML_results(dkey, dataset, classifiers, MLtypes, class_values_list, effcy, nclass,
-                   masks={}, all_class_values=g.desired_class_values, target_column=0, target_class=0, 
+                   masks={}, all_class_values=g.desired_class_values, target_column=0, target_class=g.target_class, 
                    P_threshold=None, CLFid=g.RF, force_print=True):
 
     performance = {}
@@ -1516,7 +1575,8 @@ def main(args, start_time=-1):
         if args.balance:
             #print(set(data_train[alltypes_colnames[g.Training]]), set(data_train[type_colnames[str(args.nclass)]]))
             data_train = balance_training_set(data_train, MLtypes, types_colname=type_colnames[str(args.nclass)], 
-                                              min_train_size=args.min_train_size, force_print=True)
+                                              min_total_size=args.min_train_total_size,
+                                              max_class_size=args.max_train_class_size, force_print=True)
 
     # Use RF for now (in future may build a loop over classifiers)
     CLFid = g.RF
@@ -1551,7 +1611,7 @@ def main(args, start_time=-1):
             min_samples_leaf = args.min_samples_leaf
             n_estimators = args.n_estimators
             max_depth = None if args.max_depth==0 else args.max_depth
-            _result = build_RF_classifier(data_train, args.nclass, args.ft, args.nc, alltypes_colnames[g.Training],
+            _result = build_RF_classifier(data_train, args.nclass, args.ft, args.nc,
                                           type_colnames=type_colnames, start_time=start_time, force_print=True,
                                           min_samples_split=min_samples_split, min_samples_leaf= min_samples_leaf,
                                           n_estimators=n_estimators, max_depth=max_depth,

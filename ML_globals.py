@@ -161,6 +161,7 @@ alternate_feature_names = {'text': {'snid':'CID', 'z':'zCMB', 't0':'PKMJD', 't0_
 
 # numerical values for recognized classes; code creates extra data columns if supplied labels differ 
 desired_class_values = {Ia:0, Ib:1, Ic:1, Ibc:1, II:2, CC:1}
+target_class = desired_class_values[Ia]
 
 # dictionary defining default column names and contents for labeled data for allowed data formats
 data_defaults = {'text':{'alltypes_colname':'type3',
@@ -220,7 +221,8 @@ allowed_templates = {'2P':['20'], '2N':['21'], '2L':['22'], '2b':['23'], '2PL':[
 
 
 ################ VARIABLES ############## 
-min_train_size = 3000
+min_train_total_size = 3000
+max_train_class_size = 10000
 
 ################ LOGGING ############## 
 log = '.log'
