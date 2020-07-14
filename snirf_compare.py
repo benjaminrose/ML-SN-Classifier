@@ -4,6 +4,7 @@ import glob
 import numpy as np
 import re
 import matplotlib
+import argparse
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 import joblib
@@ -14,6 +15,11 @@ plt.rc('font', family='serif')
 plt.rcParams['text.latex.preamble'] = [r'\boldmath']
 
 import ML_globals as g
+
+pur_eff = g.Purity + '_vs_' + g.Efficiency
+prob = 'Probability_Calibration'
+acronym = {pur_eff:'PurEff', g.ROC:g.ROC, prob:'ProbCal'}
+
 
 figx = 15
 figy = 6
@@ -28,6 +34,7 @@ STR = ' '.join([g.Simulated, g.Training])
 STT = ' '.join([g.Simulated, g.Test])
 STRD = ' '.join([g.Simulated, g.Training, g.Data])
 STTD = ' '.join([g.Simulated, g.Test, g.Data])
+
 
 def plot_roc(ax, performance={}, label='', color='blue', title='', finish=False):
     if not finish:
@@ -67,7 +74,8 @@ def plot_calibration(ax, performance={}, label='', color='blue', title='', finis
         ax.legend(loc='best', fontsize=lsize, numpoints=1)
         ax.set_title('{}'.format(' '.join(['Calibration Curve', title])))#, fontsize=sizes['Title'])
 
-    
+plot_calls = {pur_eff:plot_pur_vs_eff, g.ROC:plot_roc, prob:plot_calibration}
+        
 def close_page(fig, multiPdf, npage):
     npage += 1
     fig.tight_layout()
@@ -79,28 +87,20 @@ def close_page(fig, multiPdf, npage):
     plt.close(fig)
     return npage
 
-def main(argv, title='Training Set Size', before='10x10', after='TRAIN', 
-         plot_id ='pureff_ROC_prob', mode=g.Test, filedir='performance'):
-    file_template = argv[0]
-    if len(argv) > 1:
-        title = argv[1]
-    if len(argv) > 2:
-        before = argv[2]
-    if len(argv) > 3:
-        after = argv[3] 
-    if len(argv) > 4:
-        plot_id = argv[4] 
-    if len(argv) > 5:
-        mode = argv[5] 
-    files = sorted(glob.glob(file_template+'*'))
-    if 'prob' in plot_id:
-        plots = [plot_pur_vs_eff, plot_roc, plot_calibration]
-    elif 'ROC' in plot_id:
-        plots = [plot_pur_vs_eff, plot_roc]
-    else:
-        plots = [plot_pur_vs_eff]
+def main(arsdict):
+    mode = argsdict['mode']
+    before = argsdict['before']
+    after = argsdict['after']
+    file_template = argsdict['filestring']
+    title = argsdict['title']
+    filedir = argsdict['filedir']
+    plot_list = argsdict['plots']
+
+    files = sorted(glob.glob(os.path.join(filedir, '*'+file_template+'*.pkl')))
+    print('Files found: {}'.format(', '.join(files)))
+    plot_id = '_'.join([acronym[k] for k in plot_list])
     pdfname = os.path.join(filedir, '_'.join([plot_id, re.sub(' ', '_', title)]) + '.pdf')
-    ncolumns = len(plots)
+    ncolumns = len(plot_list)
     if nrows == 1 and ncolumns == 1:
         fig, ax_all  = plt.subplots(nrows, ncolumns, figsize=(figx/2, figy))
         axall = [ax_all]
@@ -108,19 +108,25 @@ def main(argv, title='Training Set Size', before='10x10', after='TRAIN',
         fig, ax_all  = plt.subplots(nrows, ncolumns, figsize=(figx, figy))
         axall = ax_all.flat
     markers = iter(Default_markers)
-
+    plots = [plot_calls[k] for k in plot_list]
+    
     print('\nSaving plots to {}'.format(pdfname))
     multiPdf = PdfPages(pdfname)
 
     page_total = 0
     perf = {}  #load dicts
     for f in files:
+        print(f)
         pff = joblib.load(f)
-        label = re.sub('_', ' ', f.split(after)[0].split(before)[-1]).strip()
+        fn = os.path.splitext(os.path.basename(f))[0]
+        label = f.split(after)[0] if after else fn
+        label = label.split(before)[-1] if before else label
+        label = re.sub('_', ' ', label).strip()
+        print('Reading {} with label {}'.format(f, label))
         #label = re.findall('\d+',  f.split(match)[0])[-1]  #get last set of digits in filename
         perf[label] = pff
 
-    print(sorted(perf.keys()))
+    print('Plotting {}'.format(sorted(perf.keys())))
 
     #make plots
     for ax, plot in zip(axall, plots):
@@ -144,11 +150,34 @@ def main(argv, title='Training Set Size', before='10x10', after='TRAIN',
     plt.rcParams.update({'figure.max_open_warning': 0})
 
     print('\nWrote {} with {} pages'.format(pdfname, page_total))
+          
 
         
     return
 
+def parse_args(argv):
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description='Compare SNIRF performance')
+    parser.add_argument('filestring', help='String to match for selecting performance pkl files to compare', default='')
+    parser.add_argument('--title', help='Title for plot', default='')
+    parser.add_argument('--before', help='Preceding filename string to ignore in legend label', default='')
+    parser.add_argument('--after', help='Succeeding filename string to ignore in legend label', default='')
+    parser.add_argument('--mode', help='Data sets to compare', default=g.Test)
+    parser.add_argument('--plots', help='Plots to make', nargs='+', choices=[pur_eff, g.ROC, prob],
+                        default=[pur_eff, g.ROC, prob])
+    parser.add_argument('--filedir', help='Directory for pkl files', default='performance')
+    
+    args=parser.parse_args()
+    argsdict=vars(args)
+    print('Running {} with parameters:'.format(sys.argv[0]))
+    for arg in argsdict.keys():
+        print('{} = {}'.format(arg, argsdict[arg]))
 
+    print('')
+    return argsdict
+
+          
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    argsdict=parse_args(sys.argv)
+    main(argsdict)
     quit()
