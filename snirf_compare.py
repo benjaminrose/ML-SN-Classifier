@@ -1,17 +1,18 @@
 import sys
 import os
 import glob
+import numpy as np
+import re
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
-import numpy as np
-import re
-from sklearn.externals import joblib
+import joblib
 from matplotlib.backends.backend_pdf import PdfPages
 import warnings
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
 plt.rcParams['text.latex.preamble'] = [r'\boldmath']
+
 import ML_globals as g
 
 figx = 15
