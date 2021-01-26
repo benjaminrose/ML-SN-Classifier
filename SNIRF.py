@@ -105,6 +105,8 @@ def parse_args(argv):
     parser.add_argument('--max_depth', default=0, type=int,
                         help='maximum depth of the tree: if 0 (->None) nodes are expanded until all leaves are pure'\
                              ' or contain less than min_samples_split samples')
+    parser.add_argument('--ranseed', type=int, default=g.ranseed,
+                        help='Random seed for building random-forest clasifier (0 selects a random (non-reproducible) initial seed')
     
     # Select efficiency
     parser.add_argument('--eff', nargs='+', type=float, default=[0.95],
@@ -692,7 +694,7 @@ def retrieve_commit_hash(path_to_repo):
     return subprocess.check_output(cmd, shell=True).strip()
 
 
-def build_RF_classifier(data_train, nclass, features, ncores, target_class=g.target_class,
+def build_RF_classifier(data_train, nclass, features, ncores, target_class=g.target_class, ranseed=g.ranseed,
                         type_colnames=g.data_defaults[g.default_format]['type_colnames'], force_print=True,
                         dummy=g.nodata, start_time=-1, min_samples_leaf=1, max_depth=None,
                         n_estimators = 100, max_features = 'auto', min_samples_split = 5, criterion = 'entropy'):
@@ -702,12 +704,14 @@ def build_RF_classifier(data_train, nclass, features, ncores, target_class=g.tar
     g.printw('*************************', force_print=force_print)
     g.printw('Training with {} features [{}]'.format(len(features), ' '.join(features)), force_print=force_print)
     g.printw('Using options:\n n_estimators {}\n min_samples_split {}\n min_samples_leaf {}\n max_depth {}\n'.format(n_estimators, min_samples_split, min_samples_leaf, max_depth))
+    random_state = ranseed if ranseed > 0 else None
+    g.printw(' random state {}\n'.format(random_state))
         
     #min_samples_split = 5  NB: 500 works well for fit_pr alone
     #criterion = 'entropy' or 'gini'
 
-    clf = RandomForestClassifier(n_estimators=n_estimators, max_features=max_features, 
-                                 min_samples_split=min_samples_split, criterion=criterion,
+    clf = RandomForestClassifier(n_estimators=n_estimators, max_features=max_features, random_state=random_state,
+                                 min_samples_split=min_samples_split, criterion=criterion, oob_score=True, 
                                  min_samples_leaf=min_samples_leaf, max_depth=max_depth,
                                  n_jobs=ncores)
 
@@ -726,6 +730,7 @@ def build_RF_classifier(data_train, nclass, features, ncores, target_class=g.tar
         g.printw("  Pre-training stage1 classifier:\n set size = {}, \tNumber of Iabc's= {}".format(len(y_pretrain),
                                                                            np.count_nonzero(class_values_pretrain == target_class)))
         clfpre.fit(X_pretrain, class_values_pretrain)
+        
         cut2 = (data_train[colname] != target_class)  # identify type II
         colname = type_colnames[str(nclass)][-1]   #type  column for classifier
         data_train_abc = data_train[~cut2]
@@ -1611,7 +1616,7 @@ def main(args, start_time=-1):
             min_samples_leaf = args.min_samples_leaf
             n_estimators = args.n_estimators
             max_depth = None if args.max_depth==0 else args.max_depth
-            _result = build_RF_classifier(data_train, args.nclass, args.ft, args.nc,
+            _result = build_RF_classifier(data_train, args.nclass, args.ft, args.nc, ranseed=args.ranseed,
                                           type_colnames=type_colnames, start_time=start_time, force_print=True,
                                           min_samples_split=min_samples_split, min_samples_leaf= min_samples_leaf,
                                           n_estimators=n_estimators, max_depth=max_depth,
@@ -1642,6 +1647,9 @@ def main(args, start_time=-1):
         F.reverse()
         g.printw(F, '\n', force_print=True)
 
+        g.printw("OOB error for {} classifier {} = {}\n".format(CLFid, blurb, 1 - cl.oob_score_),
+                 force_print=True)
+        
     if args.train_only:
         exit_code(args.done_file, status=g.SUCCESS, start_time=start_time)
                              

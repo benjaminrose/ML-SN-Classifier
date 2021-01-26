@@ -223,6 +223,7 @@ allowed_templates = {'2P':['20'], '2N':['21'], '2L':['22'], '2b':['23'], '2PL':[
 ################ VARIABLES ############## 
 min_train_total_size = 3000
 max_train_class_size = 100000
+ranseed = 43
 
 ################ LOGGING ############## 
 log = '.log'
