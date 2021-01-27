@@ -126,7 +126,7 @@ are a number of additional user-supplied options that pertain to running within
 the Pippin framework.
 
 SNIRF provides an optional plotting package based on matplotlib
-(@matplotlib), allowing the user to select a variety of plots that
+[@matplotlib], allowing the user to select a variety of plots that
 show the performance of the algorithm and distributions of features
 and other quantities that are relevant to SN Ia cosmology. SNIRF also
 makes use of various numpy [@numpy], scipy [@scipy] functions.
