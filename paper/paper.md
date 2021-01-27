@@ -1,7 +1,8 @@
 ---
 title: 'SNIRF: SuperNova Identification with Random Forest'
 tags:
-  - Python  - supernova
+  - Python
+  - supernova
   - cosmology
 
 authors:
@@ -19,7 +20,7 @@ affiliations:
    index: 1
  - name: Rutgers, The State University of New Jersey
    index: 2
-date: 1 October 2020
+date: 27 January 2021
 bibliography: paper.bib
 
 # Optional fields if submitting to a AAS journal too, see this blog post:
