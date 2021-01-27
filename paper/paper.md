@@ -21,7 +21,7 @@ affiliations:
  - name: Rutgers, The State University of New Jersey
    index: 2
 date: 27 January 2021
-bibliography: paper.bib
+bibliography: paper/paper.bib
 
 # Optional fields if submitting to a AAS journal too, see this blog post:
 # https://blog.joss.theoj.org/2018/12/a-new-collaboration-with-aas-publishing
@@ -56,13 +56,13 @@ epoch relative to peak brightness.  SNIRF exploits these differences
 to perform the classification. It has been designed to run on
 supernova candidates whose raw photometric data (typically time series
 of fluxes in various broad-band filters) have been pre-processed by a
-light-curve fitter such as SNANA (@snana) or sncosmo (@sncosmo). The
+light-curve fitter such as SNANA [@snana] or sncosmo [@sncosmo]. The
 light curves are characterized by parameters or "features" that
 describe their properties and serve as inputs to the SNIRF
 machine-learning algorithm.
 
 SNIRF makes use of the Random Forest algorithm from the scikit-learn
-(@sklearn). Random Forest is a supervised machine-learning code that
+[@sklearn]. Random Forest is a supervised machine-learning code that
 uses labeled training data to build a set of decision trees based on
 the features supplied in the training data. These features are user
 determined and may be engineered to improve the accuracy of the
@@ -120,19 +120,19 @@ range of CC SNe that may occur in the observed data.
 SNIRF uses a number of metrics to evaluate the performance of the
 algorithm, including ROC curves and the so called Precision-Recall
 (PR) curves that provide measures of purity and efficiency.
-SNIRF is also fully integrated with the Pippin framework (@pippin) which
+SNIRF is also fully integrated with the Pippin framework [@pippin] which
 runs the end-to-end cosmology analysis for the DES 5YR analysis. There
 are a number of additional user-supplied options that pertain to running within
 the Pippin framework.
 
 SNIRF provides an optional plotting package based on matplotlib
-(@matplotlib), allowing the user to select a variety of plots that
+[@matplotlib], allowing the user to select a variety of plots that
 show the performance of the algorithm and distributions of features
 and other quantities that are relevant to SN Ia cosmology. SNIRF also
 makes use of various numpy [@numpy], scipy [@scipy] functions.
 
 All of the options can be seen by running the code with the -help or
--h option.  The GitHub repository (@github) contains a "how-to.txt"
+-h option.  The GitHub repository [@github] contains a "how-to.txt"
 file which gives numerous examples of different ways to run the
 pacakage.  Any bugs or feature requests can be opened as issues on the
 [development page](https://github.com/evevkovacs/ML-SN-Classifier) [@github].
